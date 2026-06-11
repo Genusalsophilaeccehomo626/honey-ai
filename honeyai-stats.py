@@ -220,6 +220,7 @@ def main():
                 backfire_ports_tally[port] += 1
             backfire_targets.append({
                 "ip": ip,
+                "rdns": e.get('reverse_dns', ''),
                 "ports": open_ports,
                 "time": time_str
             })
