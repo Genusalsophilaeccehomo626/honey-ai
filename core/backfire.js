@@ -16,7 +16,7 @@ async function sendTelegramAlert(ip, openPorts, hostname) {
     if (!notify.telegram?.enabled || !notify.telegram.bot_token) return;
     const portsStr = openPorts.join(', ');
     const hostStr = hostname ? ` (${hostname})` : '';
-    const msg = `💥 *[Operación Espina]*\nAtacante \`${ip}\`${hostStr} analizado.\nPuertos abiertos: *${portsStr}* (Servicios públicos expuestos en internet).`;
+    const msg = `💥 *[Operation Spine]*\nAttacker \`${ip}\`${hostStr} scanned.\nOpen ports: *${portsStr}* (Public services exposed on the internet).`;
     try {
         await axios.post(
             `https://api.telegram.org/bot${notify.telegram.bot_token}/sendMessage`,

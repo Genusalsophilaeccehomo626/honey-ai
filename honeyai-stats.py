@@ -131,7 +131,7 @@ def main():
     
     all_ips = []
     
-    # Operación Espina (Backfire scans)
+    # Operation Spine (Backfire scans)
     backfire_scans = 0
     backfire_ips = set()
     backfire_ports_tally = Counter()

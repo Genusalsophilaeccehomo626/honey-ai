@@ -698,7 +698,7 @@ async function runSuite() {
     }
     console.log(chalk.gray('--------------------------------------------------'));
 
-    // ── Phase 3: Active Defense Traps (Operación Espina) ──────────────────
+    // ── Phase 3: Active Defense Traps (Operation Spine) ──────────────────
     console.log(chalk.blue('🔍 Testing Phase 3 Active Defense Traps...'));
     try {
         const traps = require('./core/traps');
