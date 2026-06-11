@@ -1,6 +1,6 @@
 {
   "name": "openclaw-honeyai",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "All-in-one AI-powered honeypot: SSH, HTTP, FTP, Telnet, MySQL, Redis, SMTP, Git — driven by local LLMs via Ollama",
   "main": "server.js",
   "packageManager": "pnpm@10.33.0",
