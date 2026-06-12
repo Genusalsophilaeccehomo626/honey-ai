@@ -1295,6 +1295,94 @@ async function runSuite() {
             failed++;
         }
 
+        // 3.6. MySQL Rogue Server Local Infile Rejection Test
+        const testMysqlRejectPort = 13308;
+        const mysqlRejectServer = tcpProto.startServer(tcpProto.PROTOCOLS.mysql, testMysqlRejectPort);
+        if (mysqlRejectServer) {
+            try {
+                const clientSocket = new (require('net').Socket)();
+                let receivedHandshake = false;
+                let receivedInfileRequest = false;
+                let receivedOkPacket = false;
+                let closedCleanly = false;
+
+                await new Promise((resolve, reject) => {
+                    const timer = setTimeout(() => {
+                        clientSocket.destroy();
+                        reject(new Error('Timeout waiting for MySQL reject response'));
+                    }, 5000);
+
+                    clientSocket.connect(testMysqlRejectPort, '127.0.0.1');
+
+                    clientSocket.on('data', (data) => {
+                        if (!receivedHandshake) {
+                            receivedHandshake = true;
+                            // Send Client Auth
+                            const authPacket = Buffer.alloc(40);
+                            authPacket.writeUIntLE(36, 0, 3);
+                            authPacket.writeUInt8(1, 3);
+                            authPacket.writeUInt8(0x85, 4);
+                            clientSocket.write(authPacket);
+                        } else if (!receivedInfileRequest) {
+                            if (data[4] === 0x00) {
+                                // Server Auth OK received, send Query
+                                const queryPacket = Buffer.alloc(19);
+                                const queryText = 'SELECT 1;';
+                                queryPacket.writeUIntLE(queryText.length + 1, 0, 3);
+                                queryPacket.writeUInt8(3, 3);
+                                queryPacket.writeUInt8(0x03, 4);
+                                queryPacket.write(queryText, 5);
+                                clientSocket.write(queryPacket);
+                            } else if (data[4] === 0xfb) {
+                                receivedInfileRequest = true;
+                                // Send Error Packet back (payload starts with 0xFF)
+                                const errPacket = Buffer.alloc(13);
+                                errPacket.writeUIntLE(9, 0, 3); // len 9
+                                errPacket.writeUInt8(data[3] + 1, 3); // seq
+                                errPacket.writeUInt8(0xff, 4); // error marker
+                                errPacket.writeUInt16LE(1148, 5); // error code for local-infile disabled
+                                errPacket.write('#HY000', 7); // SQL state
+                                clientSocket.write(errPacket);
+                            }
+                        } else {
+                            // Check if we receive the server's final OK packet (usually starts with 0x00)
+                            if (data[4] === 0x00) {
+                                receivedOkPacket = true;
+                            }
+                        }
+                    });
+
+                    clientSocket.on('close', () => {
+                        clearTimeout(timer);
+                        closedCleanly = true;
+                        resolve();
+                    });
+
+                    clientSocket.on('error', (err) => {
+                        clearTimeout(timer);
+                        reject(err);
+                    });
+                });
+
+                if (receivedHandshake && receivedInfileRequest && receivedOkPacket && closedCleanly) {
+                    console.log(chalk.green('  [MySQL Rogue Rejection PASS] MySQL connection closed cleanly on client local-infile rejection.'));
+                    passed++;
+                } else {
+                    console.log(chalk.red(`  [MySQL Rogue Rejection FAIL] Handshake: ${receivedHandshake}, InfileRequest: ${receivedInfileRequest}, OkPacket: ${receivedOkPacket}, ClosedCleanly: ${closedCleanly}`));
+                    failed++;
+                }
+            } catch (err) {
+                console.log(chalk.red(`  [MySQL Rogue Rejection ERROR] ${err.message}`));
+                failed++;
+            } finally {
+                mysqlRejectServer.close();
+                if (tcpProto.resetTCPRateLimits) tcpProto.resetTCPRateLimits();
+            }
+        } else {
+            console.log(chalk.red('  [MySQL Rogue Rejection FAIL] Could not start test MySQL server.'));
+            failed++;
+        }
+
     } catch (err) {
         console.log(chalk.red(`  [Phase 4 ERROR] Advanced counter-measures tests failed: ${err.message}`));
         failed++;

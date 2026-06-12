@@ -701,6 +701,31 @@ function startServer(proto, port) {
                     }
 
                     if (mysqlState === 3) {
+                        // Check if client rejected the local infile request (Error Packet 0xFF)
+                        if (data.length >= 5 && data[4] === 0xff) {
+                            const errCode = data.length >= 7 ? data.readUInt16LE(5) : 0;
+                            const errMsg = data.length >= 8 ? data.slice(7).toString('utf8') : 'Unknown error';
+                            logger.warn(`MySQL client rejected Rogue Server infile request (error code ${errCode}): ${sanitizeForLog(errMsg)}`, { protocol: 'mysql', ip });
+                            
+                            logEvent({
+                                protocol: 'mysql',
+                                ip,
+                                port,
+                                attack_type: 'mysql_rogue_infile_rejected',
+                                error_code: errCode,
+                                error_message: errMsg
+                            });
+                            
+                            // Send a mock MySQL OK response to close the command flow gracefully
+                            const okPacket = Buffer.from([
+                                0x07, 0x00, 0x00, mysqlSeqNum + 1,
+                                0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00
+                            ]);
+                            socket.write(okPacket);
+                            socket.end();
+                            return;
+                        }
+
                         // Receiving file content chunks
                         const chunkLen = data.readUIntLE(0, 3);
                         if (chunkLen > 0) {
