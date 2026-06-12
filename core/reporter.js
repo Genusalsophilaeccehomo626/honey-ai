@@ -127,6 +127,9 @@ const PROTO_CATEGORIES = {
     redis:  '15,14',
     git:    '15,14',
     vnc:    '15,14',
+    rdp:    '15,14',
+    samba:  '15,14',
+    portscan: '14',
     default:'14,15'
 };
 

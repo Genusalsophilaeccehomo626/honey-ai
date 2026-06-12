@@ -64,6 +64,15 @@ protocols:
     enabled: true
     port: 3389
 
+  samba:
+    enabled: false
+    log_path: "/var/log/samba/full_audit.log"
+
+  portscan:
+    enabled: false
+    log_path: "/var/log/syslog"
+    prefix: "PORTSCAN:"
+
 # ─── Reporting Platforms ──────────────────────────────────────────────────────
 reporting:
   cooldown_minutes: 1440         # Don't report same IP more than once per 24 hours

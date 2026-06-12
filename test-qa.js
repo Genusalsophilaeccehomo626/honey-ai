@@ -699,6 +699,89 @@ async function runSuite() {
         }
         console.log(chalk.gray('--------------------------------------------------'));
 
+    // ── Samba & Portscan Log Monitors ──
+    console.log(chalk.yellow('🔍 Testing Samba & Portscan Log Monitors...'));
+    try {
+        const samba = require('./protocols/samba');
+        const portscan = require('./protocols/portscan');
+
+        // Test Samba parser with a valid syslog line
+        let sambaEventLogged = false;
+        const originalLogEvent = require('./core/logger').logEvent;
+        // Temporary spy on logEvent
+        require('./core/logger').logEvent = function(evt) {
+            if (evt.protocol === 'samba') {
+                sambaEventLogged = evt;
+            }
+            originalLogEvent(evt);
+        };
+
+        // Simulated line: syslog prefix + user|ip|machine|share|op|status|path
+        const mockSambaLine = 'Jun 12 13:56:02 host smbd_audit: guest|192.168.1.100|my_pc|public_share|open|ok|folder/file.txt';
+        samba.parseSambaLine(mockSambaLine);
+
+        if (sambaEventLogged && 
+            sambaEventLogged.ip === '192.168.1.100' && 
+            sambaEventLogged.username === 'guest' && 
+            sambaEventLogged.share === 'public_share' && 
+            sambaEventLogged.path === 'folder/file.txt') {
+            console.log(chalk.green('  [Samba Syslog Parse PASS] Successfully parsed syslog formatted line.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [Samba Syslog Parse FAIL] Incorrect or missing event. Got: ${JSON.stringify(sambaEventLogged)}`));
+            failed++;
+        }
+
+        // Test Samba parser with a direct line (no syslog prefix)
+        sambaEventLogged = false;
+        const mockDirectSambaLine = 'admin|192.168.1.200|win_pc|admin_share|unlink|ok|secrets.txt';
+        samba.parseSambaLine(mockDirectSambaLine);
+
+        if (sambaEventLogged && 
+            sambaEventLogged.ip === '192.168.1.200' && 
+            sambaEventLogged.username === 'admin' && 
+            sambaEventLogged.share === 'admin_share' && 
+            sambaEventLogged.path === 'secrets.txt') {
+            console.log(chalk.green('  [Samba Direct Parse PASS] Successfully parsed direct formatted line.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [Samba Direct Parse FAIL] Incorrect or missing event. Got: ${JSON.stringify(sambaEventLogged)}`));
+            failed++;
+        }
+
+        // Test Portscan parser
+        let portscanEventLogged = false;
+        require('./core/logger').logEvent = function(evt) {
+            if (evt.protocol === 'portscan') {
+                portscanEventLogged = evt;
+            }
+            originalLogEvent(evt);
+        };
+
+        const mockPortscanLine = 'Jun 12 13:56:02 host kernel: [ 1234.56] PORTSCAN: IN=eth0 OUT= MAC=00:11 SRC=192.168.1.100 DST=192.168.1.167 LEN=60 PROTO=TCP SPT=54321 DPT=8080 SYN';
+        portscan.parsePortscanLine(mockPortscanLine);
+
+        if (portscanEventLogged && 
+            portscanEventLogged.ip === '192.168.1.100' && 
+            portscanEventLogged.dst_port === 8080 && 
+            portscanEventLogged.src_port === 54321 && 
+            portscanEventLogged.proto === 'tcp') {
+            console.log(chalk.green('  [Portscan Parse PASS] Successfully parsed iptables portscan log.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [Portscan Parse FAIL] Incorrect or missing event. Got: ${JSON.stringify(portscanEventLogged)}`));
+            failed++;
+        }
+
+        // Clean up spy
+        require('./core/logger').logEvent = originalLogEvent;
+
+    } catch (err) {
+        console.log(chalk.red(`  [Samba/Portscan ERROR] Verification failed: ${err.message}`));
+        failed++;
+    }
+    console.log(chalk.gray('--------------------------------------------------'));
+
     // ── Phase 2 Upgrades: Jitter, Container Emulation, RDP verification ────
     console.log(chalk.blue('🔍 Testing Phase 2 Advanced Upgrades...'));
     try {
