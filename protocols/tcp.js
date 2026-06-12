@@ -65,7 +65,7 @@ const PROTOCOLS = {
     mysql: {
         key:        'mysql',
         port:       3306,
-        banner:     '5\x00\x00\x00\x0a8.0.35\x00\x01\x00\x00\x00',
+        banner:     Buffer.from('4a0000000a382e302e33350001000000313233343536373800000002002100020000001400000000000000000000313233343536373839303132006d7973716c5f6e61746976655f70617373776f726400', 'hex'),
         binary:     true,
         prompt:     null,
         categories: '15,18'
