@@ -280,6 +280,13 @@ function startServer(proto, port) {
                         }
                     }
 
+                    const lowerLine = line.trim().toLowerCase();
+                    const shouldDisconnect = lowerLine === 'exit' || lowerLine === 'quit' || response.includes('Connection closed by foreign host.');
+                    if (shouldDisconnect) {
+                        socket.end();
+                        return;
+                    }
+
                     if (!socket.destroyed && socket.writable && proto.prompt) {
                         socket.write(proto.prompt);
                     }
