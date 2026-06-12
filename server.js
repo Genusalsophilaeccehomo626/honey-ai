@@ -67,7 +67,10 @@ global.activeConnections = {
     vnc: 0,
     rdp: 0,
     samba: 0,
-    portscan: 0
+    portscan: 0,
+    httpproxy: 0,
+    mssql: 0,
+    snmp: 0
 };
 
 // ─── Start all protocol honeypots ─────────────────────────────────────────────
@@ -78,6 +81,9 @@ try { require('./protocols/ssh').start();  } catch (e) { logger.error(`SSH faile
 try { require('./protocols/tcp').start();  } catch (e) { logger.error(`TCP failed to start: ${e.message}`); }
 try { require('./protocols/samba').start(); } catch (e) { logger.error(`Samba failed to start: ${e.message}`); }
 try { require('./protocols/portscan').start(); } catch (e) { logger.error(`Portscan failed to start: ${e.message}`); }
+try { require('./protocols/httpproxy').start(); } catch (e) { logger.error(`HTTP Proxy failed to start: ${e.message}`); }
+try { require('./protocols/mssql').start(); } catch (e) { logger.error(`MSSQL failed to start: ${e.message}`); }
+try { require('./protocols/snmp').start(); } catch (e) { logger.error(`SNMP failed to start: ${e.message}`); }
 
 // ─── Management API ────────────────────────────────────────────────────────────
 const express   = require('express');

@@ -782,6 +782,72 @@ async function runSuite() {
     }
     console.log(chalk.gray('--------------------------------------------------'));
 
+    // ── HTTP Proxy, MSSQL, & SNMP Honeypots ──
+    console.log(chalk.yellow('🔍 Testing HTTP Proxy, MSSQL, & SNMP Honeypots...'));
+    try {
+        const httpproxy = require('./protocols/httpproxy');
+        const mssql = require('./protocols/mssql');
+        const snmp = require('./protocols/snmp');
+
+        // 1. Test HTTP Proxy Squid error page generation
+        const squidPage = httpproxy.getSquidErrorPage('http://malicious-site.com/');
+        if (squidPage.includes('squid/4.15') && squidPage.includes('http://malicious-site.com/')) {
+            console.log(chalk.green('  [HTTP Proxy Page PASS] Squid error page generated correctly.'));
+            passed++;
+        } else {
+            console.log(chalk.red('  [HTTP Proxy Page FAIL] Squid error page generation failed.'));
+            failed++;
+        }
+
+        // 2. Test MSSQL TDS Password De-obfuscation
+        const originalPassword = 'test_password_123';
+        const utf16Buf = Buffer.from(originalPassword, 'utf16le');
+        const obfBuf = Buffer.alloc(utf16Buf.length);
+        for (let i = 0; i < utf16Buf.length; i++) {
+            const b = utf16Buf[i];
+            const x = ((b & 0x0F) << 4) | ((b & 0xF0) >> 4);
+            obfBuf[i] = x ^ 0xA5;
+        }
+        const decrypted = mssql.decryptTdsPassword(obfBuf);
+        if (decrypted === originalPassword) {
+            console.log(chalk.green('  [MSSQL TDS Decryption PASS] Password de-obfuscation works perfectly.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [MSSQL TDS Decryption FAIL] Decryption mismatch: expected "${originalPassword}" but got "${decrypted}"`));
+            failed++;
+        }
+
+        // 3. Test SNMP BER OID Decoder
+        const oidBytes = Buffer.from([0x2b, 0x06, 0x01, 0x04, 0x01]); // 1.3.6.1.4.1
+        const decodedOid = snmp.decodeOid(oidBytes);
+        if (decodedOid === '1.3.6.1.4.1') {
+            console.log(chalk.green('  [SNMP OID Decoder PASS] Decoded BER OID correctly.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [SNMP OID Decoder FAIL] Expected "1.3.6.1.4.1", got "${decodedOid}"`));
+            failed++;
+        }
+
+        // 4. Test SNMP full packet parser
+        const mockSnmpPacket = Buffer.from(
+            '302102010004067075626c6963a014020101020100020100300b300906052b06010401',
+            'hex'
+        );
+        const parsed = snmp.parseSnmp(mockSnmpPacket);
+        if (parsed && parsed.community === 'public' && parsed.version === 0 && parsed.requests[0] === '1.3.6.1.4.1') {
+            console.log(chalk.green('  [SNMP Packet Parse PASS] Decoded community string and OIDs from raw UDP SNMP buffer.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [SNMP Packet Parse FAIL] Failed to parse SNMP packet correctly. Got: ${JSON.stringify(parsed)}`));
+            failed++;
+        }
+
+    } catch (err) {
+        console.log(chalk.red(`  [HTTP Proxy/MSSQL/SNMP ERROR] Verification failed: ${err.message}`));
+        failed++;
+    }
+    console.log(chalk.gray('--------------------------------------------------'));
+
     // ── Phase 2 Upgrades: Jitter, Container Emulation, RDP verification ────
     console.log(chalk.blue('🔍 Testing Phase 2 Advanced Upgrades...'));
     try {

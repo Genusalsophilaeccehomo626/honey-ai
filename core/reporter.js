@@ -130,6 +130,9 @@ const PROTO_CATEGORIES = {
     rdp:    '15,14',
     samba:  '15,14',
     portscan: '14',
+    httpproxy: '21,14',
+    mssql:  '15,18',
+    snmp:   '15,14',
     default:'14,15'
 };
 

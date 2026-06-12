@@ -73,6 +73,18 @@ protocols:
     log_path: "/var/log/syslog"
     prefix: "PORTSCAN:"
 
+  httpproxy:
+    enabled: false
+    port: 8080
+
+  mssql:
+    enabled: false
+    port: 1433
+
+  snmp:
+    enabled: false
+    port: 161
+
 # ─── Reporting Platforms ──────────────────────────────────────────────────────
 reporting:
   cooldown_minutes: 1440         # Don't report same IP more than once per 24 hours
