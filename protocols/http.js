@@ -88,6 +88,19 @@ function start(customPort) {
         next();
     });
 
+    // ── Anti-timing-fingerprint jitter ────────────────────────────────────
+    // Without this, template responses return in ~5ms while AI responses take
+    // 7-20s. An attacker measuring response times can trivially detect the
+    // honeypot. This middleware adds 150-800ms random delay to ALL responses,
+    // simulating realistic PHP/Apache processing time.
+    const { sleep } = require('../core/jitter');
+    app.use(async (req, res, next) => {
+        // Skip health endpoint (monitoring needs instant response)
+        if (req.path === '/health') return next();
+        await sleep(150, 800);
+        next();
+    });
+
     // ── Health check (instant response, bypasses LLM) ─────────────────────
     app.get('/health', (req, res) => {
         res.status(200).send('OK');
