@@ -15,6 +15,8 @@ const backfire = require('../core/backfire');
 
 let tailProcess = null;
 let restartTimeout = null;
+let retryCount = 0;
+const MAX_RETRIES = 3;
 
 function start() {
     const cfg = config.protocols.portscan;
@@ -23,6 +25,7 @@ function start() {
     const logPath = cfg.log_path || '/var/log/syslog';
     loggerModule.logger.info(`Portscan log monitor active on log path: ${logPath}`, { protocol: 'portscan' });
 
+    retryCount = 0;
     startTailing(logPath);
 }
 
@@ -36,6 +39,20 @@ function startTailing(logPath) {
         restartTimeout = null;
     }
 
+    if (!fs.existsSync(logPath)) {
+        loggerModule.logger.warn(`Portscan log file does not exist: ${logPath}. Retry ${retryCount + 1}/${MAX_RETRIES}.`, { protocol: 'portscan' });
+        retryCount++;
+        if (retryCount >= MAX_RETRIES) {
+            loggerModule.logger.error(`Portscan log file still missing after ${MAX_RETRIES} attempts. Disabling Portscan log monitor.`, { protocol: 'portscan' });
+            return;
+        }
+        restartTimeout = setTimeout(() => {
+            startTailing(logPath);
+        }, 30000);
+        return;
+    }
+
+    retryCount = 0;
     tailProcess = spawn('tail', ['-n', '0', '-F', logPath]);
 
     let lineBuffer = '';

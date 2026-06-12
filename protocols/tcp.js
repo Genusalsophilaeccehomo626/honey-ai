@@ -22,7 +22,19 @@ const PROTOCOLS = {
         port:       21,
         banner:     '220 (vsFTPd 3.0.5)\r\n',
         prompt:     null,         // FTP has no persistent prompt
-        categories: '5,18'
+        categories: '5,18',
+        hardcoded: {
+            'USER':     '331 Please specify the password.\r\n',
+            'PASS':     '230 Login successful.\r\n',
+            'SYST':     '215 UNIX Type: L8\r\n',
+            'PWD':      '257 "/" is the current directory\r\n',
+            'QUIT':     '221 Goodbye.\r\n',
+            'TYPE':     '200 Switching to Binary mode.\r\n',
+            'PASV':     '227 Entering Passive Mode (127,0,0,1,8,12).\r\n',
+            'PORT':     '200 PORT command successful.\r\n',
+            'FEAT':     "211-Features:\r\n EPRT\r\n EPSV\r\n MDTM\r\n PASV\r\n REST STREAM\r\n SIZE\r\n TVFS\r\n211 End\r\n",
+            'OPTS':     "200 Always in UTF8 mode.\r\n"
+        }
     },
     telnet: {
         key:        'telnet',
@@ -70,6 +82,7 @@ const PROTOCOLS = {
             'INFO':     '$16\r\nredis_version:7.2.4\r\n',
             'CONFIG':   '-ERR unknown command\r\n',
             'AUTH':     '-ERR Client sent AUTH, but no password is set\r\n',
+            'SELECT':   '+OK\r\n',
             'QUIT':     '+OK\r\n',
             'COMMAND':  '-ERR unknown command\r\n',
             'KEYS':     '*5\r\n$13\r\nsession:admin\r\n$11\r\nuser:admin\r\n$13\r\nconfig:dbpass\r\n$17\r\napi_key:production\r\n$14\r\nbackup:latest\r\n'
@@ -233,6 +246,16 @@ function startServer(proto, port) {
                     return;
                 }
 
+                if (proto.key === 'redis') {
+                    const parts = line.split(/\s+/).filter(Boolean);
+                    const cmd = parts[0] || '';
+                    const args = parts.slice(1).map(arg => `'${arg}'`).join(' ');
+                    const errResponse = `-ERR unknown command '${cmd}', with args beginning with: ${args ? args + ' ' : ''}\r\n`;
+                    if (!socket.destroyed) socket.write(errResponse);
+                    drainQueue();
+                    return;
+                }
+
                 const response = await ai.generate({
                     protocol:     proto.key,
                     attackerInput: line,
@@ -313,6 +336,8 @@ function startServer(proto, port) {
 
         // ── Telnet state variables ──────────────────────────────────────────
         let telnetBuffer = Buffer.alloc(0);
+        let telnetState = 'awaitingUsername';
+        let telnetUsername = '';
 
         function processRedisCommand(line) {
             const safeInput = sanitizeForLog(line);
@@ -745,10 +770,34 @@ function startServer(proto, port) {
             // Extract complete lines
             let newlineIdx;
             while ((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
-                const line = lineBuffer.slice(0, newlineIdx).replace(/\r$/, '').trim();
+                const line = lineBuffer.slice(0, newlineIdx).replace(/\r$/, '');
                 lineBuffer = lineBuffer.slice(newlineIdx + 1);
 
-                if (line.length === 0) continue;
+                if (proto.key === 'telnet' && telnetState !== 'authenticated') {
+                    const trimmed = line.trim();
+                    if (telnetState === 'awaitingUsername') {
+                        telnetUsername = trimmed || 'root';
+                        socket.write('Password: ');
+                        telnetState = 'awaitingPassword';
+                    } else if (telnetState === 'awaitingPassword') {
+                        logger.info(`Telnet authentication successful for user "${sanitizeForLog(telnetUsername)}"`, { protocol: 'telnet', ip });
+                        logEvent({
+                            protocol: 'telnet',
+                            ip,
+                            port,
+                            attack_type: 'telnet_login_success',
+                            username: telnetUsername
+                        });
+                        socket.write('\r\nLinux debian-pi5 6.1.0-rpi7-rpi-2712 #1 SMP PREEMPT Debian 6.1.63-1+rpt1 (2023-11-24) aarch64\r\n\r\nLast login: Fri Jun 12 10:24:15 2026 from 192.168.1.100\r\n');
+                        if (proto.prompt) {
+                            socket.write(proto.prompt);
+                        }
+                        telnetState = 'authenticated';
+                    }
+                    continue;
+                }
+
+                if (line.trim().length === 0) continue;
 
                 // Log with sanitized input (strip control chars to prevent log injection)
                 const safeInput = sanitizeForLog(line);

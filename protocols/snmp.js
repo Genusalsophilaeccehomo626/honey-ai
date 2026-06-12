@@ -45,6 +45,52 @@ function decodeOid(buffer) {
     return parts.join('.');
 }
 
+function encodeBerLength(len) {
+    if (len < 128) {
+        return Buffer.from([len]);
+    }
+    const bytes = [];
+    let temp = len;
+    while (temp > 0) {
+        bytes.unshift(temp & 0xFF);
+        temp = temp >> 8;
+    }
+    return Buffer.concat([
+        Buffer.from([0x80 | bytes.length]),
+        Buffer.from(bytes)
+    ]);
+}
+
+function buildTlv(tag, valueBuffer) {
+    const lenBuf = encodeBerLength(valueBuffer.length);
+    return Buffer.concat([Buffer.from([tag]), lenBuf, valueBuffer]);
+}
+
+function buildSnmpResponse(parseResult, responseValue = "Debian GNU/Linux 12 (bookworm) Linux 6.1.0-rpi7") {
+    const { versionBytes, communityBytes, requestIdBytes, oidBytesList } = parseResult;
+    if (!oidBytesList || oidBytesList.length === 0) return null;
+    
+    const varbinds = [];
+    for (const oidBytes of oidBytesList) {
+        const valBuf = buildTlv(0x04, Buffer.from(responseValue)); // Value: OCTET STRING
+        const varbind = buildTlv(0x30, Buffer.concat([buildTlv(0x06, oidBytes), valBuf]));
+        varbinds.push(varbind);
+    }
+    const varbindList = buildTlv(0x30, Buffer.concat(varbinds));
+
+    const errStatus = buildTlv(0x02, Buffer.from([0]));
+    const errIndex = buildTlv(0x02, Buffer.from([0]));
+    const reqId = buildTlv(0x02, requestIdBytes);
+    
+    const pduBody = Buffer.concat([reqId, errStatus, errIndex, varbindList]);
+    const pdu = buildTlv(0xa2, pduBody); // 0xa2 is GetResponse PDU
+
+    const versionVal = buildTlv(0x02, versionBytes);
+    const communityVal = buildTlv(0x04, communityBytes);
+    
+    return buildTlv(0x30, Buffer.concat([versionVal, communityVal, pdu]));
+}
+
 function parseSnmp(buffer) {
     try {
         let pos = 0;
@@ -57,6 +103,7 @@ function parseSnmp(buffer) {
         // 2. Read SNMP Version
         if (buffer[pos++] !== 0x02) return null;
         const verLen = buffer[pos++];
+        const versionBytes = buffer.slice(pos, pos + verLen);
         const version = buffer.readUIntBE(pos, verLen);
         pos += verLen;
 
@@ -64,36 +111,39 @@ function parseSnmp(buffer) {
         if (buffer[pos++] !== 0x04) return null;
         const commLen = buffer[pos++];
         if (pos + commLen > buffer.length) return null;
+        const communityBytes = buffer.slice(pos, pos + commLen);
         const community = buffer.toString('utf8', pos, pos + commLen);
         pos += commLen;
 
         // 4. Read PDU
         const pduType = buffer[pos++];
         if ((pduType & 0xE0) !== 0xA0) {
-            return { community, requests: [], version };
+            return null;
         }
         let pduLen = readBerLength(buffer, pos);
         pos = pduLen.newPos;
 
         // 5. Read Request ID
-        if (buffer[pos++] !== 0x02) return { community, requests: [], version };
+        if (buffer[pos++] !== 0x02) return null;
         let reqIdLen = buffer[pos++];
+        const requestIdBytes = buffer.slice(pos, pos + reqIdLen);
         pos += reqIdLen;
 
         // 6. Read Error Status
-        if (buffer[pos++] !== 0x02) return { community, requests: [], version };
+        if (buffer[pos++] !== 0x02) return null;
         pos += buffer[pos++] + 1;
 
         // 7. Read Error Index
-        if (buffer[pos++] !== 0x02) return { community, requests: [], version };
+        if (buffer[pos++] !== 0x02) return null;
         pos += buffer[pos++] + 1;
 
         // 8. Read Varbind List Sequence
-        if (buffer[pos++] !== 0x30) return { community, requests: [], version };
+        if (buffer[pos++] !== 0x30) return null;
         let varbindListLen = readBerLength(buffer, pos);
         pos = varbindListLen.newPos;
 
         const requests = [];
+        const oidBytesList = [];
         // Loop over varbinds
         while (pos < buffer.length) {
             if (buffer[pos++] !== 0x30) break;
@@ -107,12 +157,15 @@ function parseSnmp(buffer) {
             if (pos + oidLen > buffer.length) break;
             const oidBytes = buffer.slice(pos, pos + oidLen);
             const oid = decodeOid(oidBytes);
-            if (oid) requests.push(oid);
+            if (oid) {
+                requests.push(oid);
+                oidBytesList.push(oidBytes);
+            }
 
             pos = varbindEnd;
         }
 
-        return { community, requests, version };
+        return { community, requests, version, versionBytes, communityBytes, requestIdBytes, oidBytesList };
     } catch (err) {
         return null;
     }
@@ -143,6 +196,15 @@ function start(customPort) {
             const { community, requests, version } = parseResult;
             const oidsStr = requests.length ? requests.join(', ') : 'none';
             loggerModule.logger.warn(`SNMP request from ${ip}: community="${community}" version=${version} OIDs=[${oidsStr}]`, { protocol: 'snmp', ip });
+
+            const respBuf = buildSnmpResponse(parseResult);
+            if (respBuf && socket) {
+                socket.send(respBuf, rinfo.port, rinfo.address, (err) => {
+                    if (err) {
+                        loggerModule.logger.error(`Failed to send SNMP response to ${ip}: ${err.message}`, { protocol: 'snmp', ip });
+                    }
+                });
+            }
 
             loggerModule.logEvent({
                 protocol: 'snmp',
@@ -194,4 +256,4 @@ function stop() {
     }
 }
 
-module.exports = { start, stop, parseSnmp, decodeOid };
+module.exports = { start, stop, parseSnmp, decodeOid, buildSnmpResponse, encodeBerLength, buildTlv };

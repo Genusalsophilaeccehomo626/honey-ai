@@ -351,7 +351,7 @@ Generate the simulated protocol response (raw output only):`;
         response = sanitizeOutput(response, protocol);
 
         // 6. HIGH-01 + MED-04: Validate output doesn't leak honeypot identity
-        response = validateOutputIdentity(response, protocol);
+        response = validateOutputIdentity(response, protocol, context);
 
         return response;
     } catch (err) {
@@ -476,11 +476,11 @@ const IDENTITY_LEAK_PATTERNS = [
     /---\s*(BEGIN|END)\s*CLIENT\s*INPUT\s*---/i,       // Our prompt template leaked
 ];
 
-function validateOutputIdentity(text, protocol) {
+function validateOutputIdentity(text, protocol, context = {}) {
     for (const pattern of IDENTITY_LEAK_PATTERNS) {
         if (pattern.test(text)) {
             logger.warn(`LLM response leaked honeypot identity (${protocol}) — matched: ${pattern} — Content: "${text}"`, { protocol });
-            return getFallback(protocol);
+            return getFallback(protocol, context);
         }
     }
     return text;
@@ -488,7 +488,17 @@ function validateOutputIdentity(text, protocol) {
 
 // ─── Static fallbacks when AI is unavailable ──────────────────────────────────
 const FALLBACKS = {
-    http:    `<html><body><h1>500 Internal Server Error</h1><p>The server encountered an internal error and was unable to complete your request.</p></body></html>`,
+    http:    `<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>500 Internal Server Error</title>
+</head><body>
+<h1>Internal Server Error</h1>
+<p>The server encountered an internal error or
+misconfiguration and was unable to complete
+your request.</p>
+<hr>
+<address>Apache/2.4.51 (Ubuntu) Server at 127.0.0.1 Port 80</address>
+</body></html>`,
     ssh:     `bash: command not found`,
     ftp:     `425 Can't open data connection.`,
     telnet:  `Connection to host lost.`,
@@ -498,7 +508,47 @@ const FALLBACKS = {
     default: `Connection reset by peer.`
 };
 
-function getFallback(protocol) {
+function getFallback(protocol, context = {}) {
+    if (protocol === 'http') {
+        const path = (context.path || '').toLowerCase();
+        if (path.includes('.env')) {
+            return `PORT=8000
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=secret_master_password
+DB_DATABASE=production
+JWT_SECRET=super_secret_jwt_sign_key_12345
+API_KEY=api_key_live_x83hdks82j
+`;
+        }
+        if (path.includes('wp-config.php')) {
+            return `<?php
+define( 'DB_NAME', 'wordpress' );
+define( 'DB_USER', 'wp_admin' );
+define( 'DB_PASSWORD', 'Wp_Secure_Pass_99!' );
+define( 'DB_HOST', 'localhost' );
+define( 'DB_CHARSET', 'utf8' );
+define( 'DB_COLLATE', '' );
+`;
+        }
+        if (path.includes('.git/config')) {
+            return `[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+	ignorecase = true
+	precomposeunicode = true
+[remote "origin"]
+	url = git@github.com:internal-enterprise/main-platform.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+`;
+        }
+    }
     return FALLBACKS[protocol] || FALLBACKS.default;
 }
 

@@ -78,7 +78,13 @@ function start(customPort) {
     app.use((req, res, next) => {
         res.setHeader('Server', cfg.fake_server_header || 'Apache/2.4.51 (Ubuntu)');
         res.setHeader('X-Powered-By', 'PHP/8.1.2');
-        res.setHeader('X-Content-Type-Options', 'nosniff'); // Real servers send this
+        
+        // Remove standard security headers Express or other things might set
+        res.removeHeader('X-Content-Type-Options');
+        
+        // Add Keep-Alive settings matching Apache
+        res.setHeader('Connection', 'Keep-Alive');
+        res.setHeader('Keep-Alive', 'timeout=5, max=100');
         next();
     });
 
@@ -213,6 +219,72 @@ function start(customPort) {
             return traps.generateHttpRedirectLoop(req, res);
         }
 
+        // ── Hardcoded sensitive files interceptor (MED-01) ──────────────────
+        if (normPath.includes('.env') || normPath.includes('wp-config.php') || normPath.includes('.git/config')) {
+            logger.info(`HTTP request for sensitive path ${sanitizeForLog(path)} -> Serving static decoy`, { protocol: 'http', ip });
+            logEvent({
+                protocol: 'http',
+                ip,
+                method,
+                path,
+                user_agent: ua,
+                attack_type: 'config_leak',
+                response_bytes: 0
+            });
+
+            reporter.report(ip, {
+                protocol: 'http',
+                port: cfg.port,
+                comment: `HTTP sensitive config access: ${method} ${path}`,
+                categories: '21,14'
+            }).catch(() => {});
+
+            let decoyContent = '';
+            let contentType = 'text/plain; charset=utf-8';
+
+            if (normPath.includes('.env')) {
+                decoyContent = `PORT=8000
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=secret_master_password
+DB_DATABASE=production
+JWT_SECRET=super_secret_jwt_sign_key_12345
+API_KEY=api_key_live_x83hdks82j
+`;
+            } else if (normPath.includes('wp-config.php')) {
+                decoyContent = `<?php
+define( 'DB_NAME', 'wordpress' );
+define( 'DB_USER', 'wp_admin' );
+define( 'DB_PASSWORD', 'Wp_Secure_Pass_99!' );
+define( 'DB_HOST', 'localhost' );
+define( 'DB_CHARSET', 'utf8' );
+define( 'DB_COLLATE', '' );
+`;
+            } else if (normPath.includes('.git/config')) {
+                decoyContent = `[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+	ignorecase = true
+	precomposeunicode = true
+[remote "origin"]
+	url = git@github.com:internal-enterprise/main-platform.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+`;
+            }
+
+            res.setHeader('Content-Type', contentType);
+            const bodyBytes = Buffer.byteLength(decoyContent, 'utf8');
+            // Update response_bytes in last logged event (which is config_leak)
+            // Wait, we can just send the response
+            return res.status(200).send(decoyContent);
+        }
+
         // ── Infinite Maze Trap ──────────────────────────────────────────────
         if (normPath.startsWith('/archive/') || normPath === '/archive') {
             const traps = require('../core/traps');
@@ -314,7 +386,7 @@ function start(customPort) {
         const aiResponse = await ai.generate({
             protocol: 'http',
             attackerInput: `Attack type detected: ${attackType}\n\n${attackerInput}`,
-            context: { ip, port: cfg.port }
+            context: { ip, port: cfg.port, path }
         });
 
         // ── Log the event ──────────────────────────────────────────────────
@@ -345,7 +417,7 @@ function start(customPort) {
         let responsePayload = aiResponse;
         if (typeof responsePayload === 'string' && /<\/html>|<\/body>/i.test(responsePayload)) {
             const traps = require('../core/traps');
-            responsePayload = traps.injectFingerprint(responsePayload);
+            responsePayload = traps.injectFingerprint(responsePayload, ua);
         }
 
         res.status(status).send(responsePayload);

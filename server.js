@@ -104,13 +104,31 @@ mgmt.use((req, res, next) => {
     }
     res.removeHeader('Access-Control-Allow-Origin');
     
-    // Allow public access to root static assets (dashboard HTML/CSS/JS) and health check
-    const publicPaths = ['/health', '/', '/index.html', '/favicon.ico'];
-    const isPublic = publicPaths.includes(req.path) || req.path.startsWith('/assets/') || req.path.endsWith('.css') || req.path.endsWith('.js') || req.path.endsWith('.png') || req.path.endsWith('.jpg');
-    
-    if (!isPublic && req.headers['x-api-key'] !== MGMT_KEY) {
-        return res.status(401).json({ error: 'Unauthorized' });
+    if (req.path === '/health') {
+        return next();
     }
+
+    // Custom cookie parser
+    const cookies = {};
+    if (req.headers.cookie) {
+        req.headers.cookie.split(';').forEach(c => {
+            const parts = c.split('=');
+            cookies[parts[0].trim()] = parts.slice(1).join('=').trim();
+        });
+    }
+
+    const key = req.headers['x-api-key'] || req.query.key || cookies['honeyai-key'];
+    
+    if (key !== MGMT_KEY) {
+        return res.status(401).send('Unauthorized');
+    }
+
+    // If key came from query parameter, set cookie and redirect to clean URL
+    if (req.query.key) {
+        res.setHeader('Set-Cookie', `honeyai-key=${MGMT_KEY}; Path=/; HttpOnly; SameSite=Strict`);
+        return res.redirect(req.path);
+    }
+
     next();
 });
 
