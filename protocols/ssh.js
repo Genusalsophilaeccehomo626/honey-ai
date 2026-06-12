@@ -466,7 +466,8 @@ async function handleDownloadCommand(cmd, ip) {
     const url = urls[0];
     const result = await downloader.processDownload(url, ip, 'ssh');
     if (result) {
-        return downloader.getFakeCLIOutput(url, result.filename, result.size);
+        const cliOutput = downloader.getFakeCLIOutput(url, result.filename, result.size);
+        return { cliOutput, result };
     }
     return null;
 }
@@ -554,15 +555,33 @@ async function runFakeShell(stream, ip, cfg, sessionState) {
                     logEvent({ protocol: 'ssh', ip, command: cmd });
 
                     // 1. Intercept download
-                    const downloadResult = await handleDownloadCommand(cmd, ip);
-                    if (downloadResult) {
-                        await writeSSHOutput(stream, downloadResult);
+                    const downloadRes = await handleDownloadCommand(cmd, ip);
+                    if (downloadRes) {
+                        await writeSSHOutput(stream, downloadRes.cliOutput);
                         try {
-                            const urls = downloader.extractURLs(cmd);
-                            const url = new URL(urls[0]);
-                            const filename = path.basename(url.pathname) || 'downloaded_file';
+                            const result = downloadRes.result;
+                            let filename = 'downloaded_file';
+                            const wgetMatch = cmd.match(/(?:wget)\s+.*?-O\s*(\S+)/i);
+                            const curlMatch = cmd.match(/(?:curl)\s+.*?-o\s*(\S+)/i);
+                            if (wgetMatch && wgetMatch[1]) {
+                                filename = path.basename(wgetMatch[1].replace(/['"]/g, ''));
+                            } else if (curlMatch && curlMatch[1]) {
+                                filename = path.basename(curlMatch[1].replace(/['"]/g, ''));
+                            } else {
+                                filename = result.filename;
+                            }
                             const filePath = resolvePath(sessionState.cwd, filename);
-                            sessionState.virtualFS.set(filePath, '#!/bin/bash\n# Simulated payload\n');
+
+                            // Load actual content if it is a small text script (under 100KB, no null bytes)
+                            let content = '#!/bin/bash\n# Simulated payload\n';
+                            const savedPath = path.join(__dirname, '../logs/downloads', result.sha256);
+                            if (fs.existsSync(savedPath) && result.size < 100 * 1024) {
+                                const raw = fs.readFileSync(savedPath);
+                                if (!raw.includes(0)) { // No null bytes
+                                    content = raw.toString('utf8');
+                                }
+                            }
+                            sessionState.virtualFS.set(filePath, content);
                         } catch (_) {}
                         printPrompt();
                         continue;
@@ -667,9 +686,34 @@ async function handleExecCommand(stream, command, ip, cfg, sessionState) {
     logEvent({ protocol: 'ssh', ip, command, mode: 'exec' });
 
     // 1. Intercept download
-    const downloadResult = await handleDownloadCommand(command, ip);
-    if (downloadResult) {
-        await writeSSHOutput(stream, downloadResult);
+    const downloadRes = await handleDownloadCommand(command, ip);
+    if (downloadRes) {
+        await writeSSHOutput(stream, downloadRes.cliOutput);
+        try {
+            const result = downloadRes.result;
+            let filename = 'downloaded_file';
+            const wgetMatch = command.match(/(?:wget)\s+.*?-O\s*(\S+)/i);
+            const curlMatch = command.match(/(?:curl)\s+.*?-o\s*(\S+)/i);
+            if (wgetMatch && wgetMatch[1]) {
+                filename = path.basename(wgetMatch[1].replace(/['"]/g, ''));
+            } else if (curlMatch && curlMatch[1]) {
+                filename = path.basename(curlMatch[1].replace(/['"]/g, ''));
+            } else {
+                filename = result.filename;
+            }
+            const filePath = resolvePath(sessionState.cwd, filename);
+
+            // Load actual content if it is a small text script (under 100KB, no null bytes)
+            let content = '#!/bin/bash\n# Simulated payload\n';
+            const savedPath = path.join(__dirname, '../logs/downloads', result.sha256);
+            if (fs.existsSync(savedPath) && result.size < 100 * 1024) {
+                const raw = fs.readFileSync(savedPath);
+                if (!raw.includes(0)) { // No null bytes
+                    content = raw.toString('utf8');
+                }
+            }
+            sessionState.virtualFS.set(filePath, content);
+        } catch (_) {}
         stream.exit(0);
         stream.end();
         return;
