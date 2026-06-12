@@ -42,14 +42,17 @@ Every attacker IP is automatically reported to **5 threat intelligence platforms
 | 🌐 **HTTP/HTTPS** | Catch-all web honeypot. Mimics WordPress, Apache, phpMyAdmin, Laravel. Replaces [Galah](https://github.com/0x4D31/galah) |
 | 🔑 **SSH** | Interactive fake bash shell with canary filesystem. Accepts all credentials. Replaces [Cowrie](https://github.com/cowrie/cowrie) |
 | 🧲 **SSH Tarpit** | Infinite banner on configurable ports. Replaces [Endlessh](https://github.com/skeeto/endlessh) |
-| 📁 **FTP** | Fake vsftPd with AI-generated directory listings |
+| 📁 **FTP** | Fake vsFTPd with AI-generated directory listings |
 | 📟 **Telnet** | Fake router/switch CLI (Cisco IOS style with static `show` commands) |
 | 📧 **SMTP** | Fake mail server — accepts and logs all messages |
-| 🗄️ **MySQL** | Fake MySQL 8.0 — handshake + auth + query responses |
-| 🔴 **Redis** | Fake Redis — static RESP protocol (PING, INFO, KEYS, CONFIG) |
-| 🐙 **Git** | Git protocol honeypot on port 9418 |
-| 🖥️ **VNC** | RFB protocol handshake trap |
+| 🗄️ **MySQL** | Fake MySQL 8.0 — handshake + rogue server + query responses |
+| 🔴 **Redis** | Fake Redis 7.2 — full RESP protocol (PING, INFO, KEYS, GET, SET + AI engine) |
+| 🐙 **Git** | Git protocol honeypot with infinite-refs tarpit |
+| 🖥️ **VNC** | RFB 3.8 protocol handshake trap |
 | 💻 **RDP** | RDP protocol handshake trap |
+| 🗃️ **MSSQL** | Fake SQL Server 2019 — TDS prelogin + login handshake |
+| 📡 **SNMP** | Fake SNMP v1/v2c agent — sysDescr, sysName, sysUptime |
+| 🌐 **HTTP Proxy** | Fake Squid proxy — captures CONNECT tunnels |
 | 💣 **GZIP Bombs** | Delivers compressed payload bombs to scanners |
 | 📡 **Reporting** | Auto-reports to AbuseIPDB, OTX, DShield, Blocklist.de, VirusTotal |
 | 📲 **Telegram** | Real-time attack notifications via Telegram bot |
@@ -112,7 +115,7 @@ docker compose logs -f honeyai
 Docker Compose automatically:
 - Starts **Ollama** with persistent model storage
 - Pulls the **qwen2.5:1.5b** model on first run
-- Starts **HoneyAI** with all 11 protocols
+- Starts **HoneyAI** with all 14 protocols
 
 To use a different model:
 ```bash
@@ -140,10 +143,13 @@ Internet attackers
         ├─ :23       → Telnet          (TCP + AI, Cisco IOS style)
         ├─ :25       → SMTP            (TCP + AI)
         ├─ :3306     → MySQL           (TCP + protocol-accurate handshake)
-        ├─ :6379     → Redis           (TCP + static RESP protocol)
-        ├─ :9418     → Git             (TCP + fake repo responses)
+        ├─ :6379     → Redis           (TCP + RESP protocol + AI engine)
+        ├─ :9418     → Git             (TCP + infinite-refs tarpit)
         ├─ :5900     → VNC             (TCP + RFB handshake)
-        └─ :3389     → RDP             (TCP + RDP handshake)
+        ├─ :3389     → RDP             (TCP + RDP handshake)
+        ├─ :1433     → MSSQL           (TCP + TDS prelogin/login)
+        ├─ :161      → SNMP            (UDP + fake agent responses)
+        └─ :8080     → HTTP Proxy      (TCP + fake Squid proxy)
                 │
                 ▼
         AI Engine (Ollama / OpenAI-compatible)
@@ -175,13 +181,18 @@ honey-ai/
 ├── protocols/
 │   ├── http.js             # HTTP honeypot (replaces Galah)
 │   ├── ssh.js              # SSH honeypot + tarpit (replaces Cowrie + Endlessh)
-│   └── tcp.js              # FTP, Telnet, SMTP, MySQL, Redis, Git, VNC, RDP
+│   ├── tcp.js              # FTP, Telnet, SMTP, MySQL, Redis, Git, VNC, RDP
+│   ├── httpproxy.js        # HTTP/HTTPS proxy honeypot (fake Squid)
+│   ├── mssql.js            # MSSQL TDS protocol honeypot
+│   ├── snmp.js             # SNMP v1/v2c UDP agent honeypot
+│   ├── samba.js            # Samba log-tail based detection
+│   └── portscan.js         # Portscan detection via syslog
 ├── honeyfs/                # 🎣 Canary filesystem — attackers see these files
 │   ├── etc/                # Fake /etc/passwd, shadow, group, hostname
 │   ├── home/               # Fake crypto wallets, credential files
 │   ├── opt/                # Fake docker-compose, .env, terraform, k8s secrets
 │   └── root/               # Fake .aws/credentials, .ssh/id_rsa, passwords.txt
-└── test-qa.js              # Full test suite (98 tests)
+└── test-qa.js              # Full test suite (119 tests)
 ```
 
 ---
@@ -313,6 +324,14 @@ sudo iptables -t nat -A PREROUTING -p tcp --dport 25 -j REDIRECT --to-port 2525
 # Redirect :3306 → :33060 (MySQL), :6379 → :63790 (Redis)
 sudo iptables -t nat -A PREROUTING -p tcp --dport 3306 -j REDIRECT --to-port 33060
 sudo iptables -t nat -A PREROUTING -p tcp --dport 6379 -j REDIRECT --to-port 63790
+
+# Redirect :1433 → :14330 (MSSQL), :161 → :16100 (SNMP), :3128 → :8180 (HTTP Proxy)
+sudo iptables -t nat -A PREROUTING -p tcp --dport 1433 -j REDIRECT --to-port 14330
+sudo iptables -t nat -A PREROUTING -p udp --dport 161 -j REDIRECT --to-port 16100
+sudo iptables -t nat -A PREROUTING -p tcp --dport 3128 -j REDIRECT --to-port 8180
+
+# Persist rules
+sudo sh -c "iptables-save > /etc/iptables/rules.v4"
 ```
 
 ---
@@ -347,7 +366,7 @@ Sign up for free tiers:
 ## Running Tests
 
 ```bash
-# Run full test suite (98 tests — requires Ollama running)
+# Run full test suite (119 tests — all offline, no Ollama needed)
 node test-qa.js
 
 # Run stress test against a running instance
@@ -373,7 +392,9 @@ The `honey-ai.service` systemd file includes aggressive sandboxing:
 - **Use a dedicated VM, VPS, or Raspberry Pi** — not your dev machine
 - **Management API** binds to `127.0.0.1` only — never expose it externally
 - `config.yaml` and `.env` are gitignored — double-check before any commit
-- The AI engine filters identity leaks (honeypot, AI, simulation) in **8 languages**
+- The AI engine filters identity leaks (honeypot, AI, simulation) in **8 languages** with 39 regex patterns
+- Prompt injection defense: attacker input wrapped in `[ATTACKER_PAYLOAD_START/END]` + XML tags
+- Output sanitization: strips `<think>` tags, markdown fences, and AI meta-markers
 
 ---
 
@@ -405,11 +426,12 @@ Each report includes:
 
 PRs welcome! Ideas for contribution:
 
-- 🔌 New protocol handlers (SIP, Modbus/ICS, SNMP, DNS...)
+- 🔌 New protocol handlers (SIP, Modbus/ICS, DNS, LDAP, Memcached...)
 - 🧠 Better per-protocol AI prompts
-- 📊 Web dashboard UI
+- 📊 Web dashboard UI improvements
 - 📦 Kubernetes Helm chart
 - 🌍 Additional identity leak patterns for more languages
+- 🛡️ More prompt injection defense patterns
 - 📝 Documentation and deployment guides
 
 Please open an issue first for major changes.
