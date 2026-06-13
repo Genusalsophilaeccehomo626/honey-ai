@@ -53,6 +53,8 @@ Every attacker IP is automatically reported to **5 threat intelligence platforms
 | 🗃️ **MSSQL** | Fake SQL Server 2019 — TDS prelogin + login handshake |
 | 📡 **SNMP** | Fake SNMP v1/v2c agent — sysDescr, sysName, sysUptime |
 | 🌐 **HTTP Proxy** | Fake Squid proxy — captures CONNECT tunnels |
+| 📁 **Samba/SMB** | Passive log monitor for Samba full audit log (`samba.js`) |
+| 🛡️ **Port Scans** | Passive log monitor for iptables syslog port scan events (`portscan.js`) |
 | 💣 **GZIP Bombs** | Delivers compressed payload bombs to scanners |
 | 📡 **Reporting** | Auto-reports to AbuseIPDB, OTX, DShield, Blocklist.de, VirusTotal |
 | 📲 **Telegram** | Real-time attack notifications via Telegram bot |
@@ -149,7 +151,11 @@ Internet attackers
         ├─ :3389     → RDP             (TCP + RDP handshake)
         ├─ :1433     → MSSQL           (TCP + TDS prelogin/login)
         ├─ :161      → SNMP            (UDP + fake agent responses)
-        └─ :8080     → HTTP Proxy      (TCP + fake Squid proxy)
+        ├─ :8080     → HTTP Proxy      (TCP + fake Squid proxy)
+        │
+        ├─ Passive Log Monitors:
+        ├─ Samba Log → samba.js (extracts user/IP/machine/share/op/file)
+        └─ Syslog    → portscan.js (extracts iptables PORTSCAN events)
                 │
                 ▼
         AI Engine (Ollama / OpenAI-compatible)
