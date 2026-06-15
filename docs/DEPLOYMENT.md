@@ -183,18 +183,48 @@ Same steps as Pi5 but:
 3. Use the public IP directly (no router port forwarding needed)
 4. Consider running Ollama on a separate, more powerful machine and pointing `OLLAMA_URL` to it
 
----
+## Docker Deployment & Hardening
 
-## Docker Deployment
-
+Run HoneyAI with Docker Compose:
 ```bash
 docker compose up -d
 ```
 
-The `docker-compose.yml` includes:
-- HoneyAI container with all protocols exposed
-- Ollama container for LLM inference
-- Volume mounts for logs and config
+### Hardening Details
+The default `docker-compose.yml` implements several security layers:
+- **Read-only Root Filesystem**: The root directory is mounted read-only. Writable paths `/tmp` and `/run` are mounted as memory-backed `tmpfs`.
+- **Dropped Capabilities**: All Linux capabilities are dropped (`cap_drop: [ALL]`), and the container cannot gain new privileges.
+- **Resource Constraints**: Limits set to 256 PIDs, 512MB memory, and 1.0 CPU to prevent Denial of Service (DoS) attacks.
+- **Isolated Networks**: 
+  - `ai_backend`: An internal network with no internet access where `ollama` and `honeyai` communicate securely.
+  - `public_honeypot`: A bridge network (`172.30.50.0/24`) giving HoneyAI the static IP `172.30.50.10`.
+
+---
+
+## Passive Detectors Setup (Host)
+
+Passive detectors (Samba and Portscan) rely on host system logs. Because the HoneyAI Docker container runs in hardened mode (read-only, no capabilities), it cannot install Samba or configure host firewall rules directly. Instead, we run helper scripts on the host and mount the logs.
+
+### 1. Passive Samba Auditing
+Run the setup script on the host to configure a bait Samba share and enable VFS audit logging:
+```bash
+sudo ./scripts/setup-samba-detector.sh
+```
+This script:
+- Installs Samba and configuration tools if missing.
+- Sets up a bait share `[CorporateFiles]` pointing to `/srv/samba/share_docs` (contains fake credentials and readme).
+- Configures VFS logging via `vfs_full_audit` to output log entries to `/var/log/samba/full_audit.log`.
+- Configures log rotation and sets appropriate read permissions so the HoneyAI container can tail the log.
+
+### 2. Portscan Logs & Egress Firewall
+Run the setup script on the host to monitor port scans and restrict honeypot outbound access:
+```bash
+sudo ./scripts/setup-iptables-portscan.sh
+```
+This script:
+- Sets up custom `iptables` rules in the host `INPUT` chain to log TCP SYN packets targeting bait ports (SSH, FTP, MySQL, Samba, etc.) with the `PORTSCAN:` prefix to `/var/log/syslog`.
+- Sets up egress rules in the `DOCKER-USER` chain. This locks down outbound traffic from the honeypot container (`172.30.50.10`), allowing only replies (ESTABLISHED), DNS queries (port 53), and HTTPS (port 443) for reporting and notifications.
+- Configures host rsyslog permissions to allow the HoneyAI container to read `/var/log/syslog`.
 
 ---
 

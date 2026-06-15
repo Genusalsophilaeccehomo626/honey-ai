@@ -10,6 +10,8 @@ services:
     restart: unless-stopped
     volumes:
       - ollama_data:/root/.ollama
+    networks:
+      - ai_backend
     # GPU support (uncomment for NVIDIA):
     # deploy:
     #   resources:
@@ -29,6 +31,8 @@ services:
   ollama-pull:
     image: ollama/ollama:latest
     container_name: honeyai-ollama-pull
+    networks:
+      - ai_backend
     depends_on:
       ollama:
         condition: service_healthy
@@ -42,6 +46,22 @@ services:
     build: .
     container_name: honeyai
     restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /run:rw,noexec,nosuid,size=64m
+    pids_limit: 256
+    mem_limit: 512m
+    cpus: "1.0"
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     depends_on:
       ollama-pull:
         condition: service_completed_successfully
@@ -84,7 +104,24 @@ services:
       - ./config.yaml:/app/config.yaml:ro
       - ./honeyfs:/app/honeyfs:ro
       - honeyai_logs:/app/logs
+      # Passive detectors log mounts from host (optional, required if enabled in config)
+      - /var/log/syslog:/var/log/syslog:ro
+      - /var/log/samba:/var/log/samba:ro
+    networks:
+      public_honeypot:
+        ipv4_address: 172.30.50.10
+      ai_backend:
 
 volumes:
   ollama_data:
   honeyai_logs:
+
+networks:
+  public_honeypot:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.50.0/24
+  ai_backend:
+    driver: bridge
+    internal: true
