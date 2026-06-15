@@ -15,13 +15,21 @@ fi
 
 echo "=== HoneyAI Samba VFS Audit Log Setup ==="
 
-# 1. Install Samba if missing
+# 1. Install dependencies if missing
+INSTALL_PACKAGES=()
 if ! command -v smbd &>/dev/null; then
-    echo "[+] Installing Samba..."
+    INSTALL_PACKAGES+=("samba")
+fi
+if ! command -v rsyslogd &>/dev/null; then
+    INSTALL_PACKAGES+=("rsyslog")
+fi
+
+if [ ${#INSTALL_PACKAGES[@]} -gt 0 ]; then
+    echo "[+] Installing missing packages: ${INSTALL_PACKAGES[*]}..."
     apt-get update -qy
-    apt-get install -qy samba rsyslog
+    apt-get install -qy "${INSTALL_PACKAGES[@]}"
 else
-    echo "[*] Samba is already installed."
+    echo "[*] All required packages (Samba, rsyslog) are already installed."
 fi
 
 # 2. Setup directory for fake files
