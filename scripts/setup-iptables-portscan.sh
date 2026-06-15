@@ -62,6 +62,27 @@ iptables -A HONEYAI-EGRESS -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 iptables -A HONEYAI-EGRESS -p udp --dport 53 -j ACCEPT
 # C. Allow HTTPS (outgoing port 443 TCP) - required for AbuseIPDB, OTX, Telegram, VirusTotal reporting
 iptables -A HONEYAI-EGRESS -p tcp --dport 443 -j ACCEPT
+
+# Allow outgoing traffic to Ollama if configured externally
+CONFIG_FILE="$(dirname "$(readlink -f "$0")")/../config.yaml"
+if [ -f "$CONFIG_FILE" ]; then
+    echo "[*] Parsing config.yaml for external Ollama URL..."
+    OLLAMA_URL=$(grep -A 2 "^ai:" "$CONFIG_FILE" | grep "url:" | sed 's/.*url: *["'\'']*\([^"'\'' ]*\).*/\1/' || echo "")
+    if [ -n "$OLLAMA_URL" ]; then
+        TEMP_URL="${OLLAMA_URL#http://}"
+        TEMP_URL="${TEMP_URL#https://}"
+        OLLAMA_HOST="${TEMP_URL%%:*}"
+        OLLAMA_PORT="${TEMP_URL##*:}"
+        if [ "$OLLAMA_HOST" = "$OLLAMA_PORT" ]; then
+            OLLAMA_PORT="11434"
+        fi
+        if [ -n "$OLLAMA_HOST" ] && [[ "$OLLAMA_HOST" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ "$OLLAMA_HOST" != "127.0.0.1" ]; then
+            echo "[+] Allowing egress to external Ollama at $OLLAMA_HOST:$OLLAMA_PORT"
+            iptables -A HONEYAI-EGRESS -d "$OLLAMA_HOST" -p tcp --dport "$OLLAMA_PORT" -j ACCEPT
+        fi
+    fi
+fi
+
 # D. Drop all other egress traffic
 iptables -A HONEYAI-EGRESS -j DROP
 
