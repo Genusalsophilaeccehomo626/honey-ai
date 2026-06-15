@@ -36,7 +36,58 @@ const INJECTION_PATTERNS = [
     /vergiss\s+(?:alle|alles|deine)?\s*(?:anweisungen)?/i,
     /ignoriere\s+(?:alle|alles)?\s*(?:anweisungen)?/i,
     /dimentica(re)?\s+(?:tutto|le|ogni)?\s*(?:istruzioni)?/i,
-    /esqueça\s+(?:tudo|as|todas)?\s*(?:instruções)?/i
+    /esqueça\s+(?:tudo|as|todas)?\s*(?:instruções)?/i,
+    // Arabic (AR)
+    /(?:تجاهل|انس|تخط)\s*(?:جميع|كل)?\s*(?:التعليمات|الأوامر|الإرشادات)/i,
+    /أنت\s+الآن|لست\s+بعد\s+الآن/i,
+
+    // Turkish (TR)
+    /(?:(?:tüm|bütün)\s+)?(?:talimat|yönerge|komut)\S*\s*(?:unut|görmezden\s+gel|yoksay)|(?:unut|görmezden\s+gel|yoksay)\s*(?:tüm|bütün)?\s*(?:talimat|yönerge|komut)/i,
+    /artık\s+sen|sen\s+artık/i,
+
+    // Korean (KO)
+    /(?:모든\s+)?(?:지시|명령|지침)\S*\s*(?:무시|잊어|건너뛰어)|(?:무시|잊어|건너뛰어)\s*(?:모든)?\s*(?:지시|명령|지침)/i,
+    /너는\s+이제|당신은\s+이제/i,
+
+    // Japanese (JA)
+    /(?:すべての|全ての)?(?:指示|命令|指令)\S*\s*(?:無視|忘れ|スキップ)|(?:無視|忘れ|スキップ)\s*(?:すべての|全ての)?\s*(?:指示|命令|指令)/i,
+    /あなたは今|君は今/i,
+
+    // Hindi (HI)
+    /(?:सभी\s+)?(?:निर्देश|आदेश)\S*\s*(?:भूल\s+जाओ|अनदेखा\s+करो|नज़रअंदाज़\s+करो)|(?:भूल\s+जाओ|अनदेखा\s+करो|नज़रअंदाज़\s+करो)\s*(?:सभी)?\s*(?:निर्देश|आदेश)/i,
+    /अब\s+तुम|तुम\s+अब/i,
+
+    // Persian/Farsi (FA)
+    /(?:همه\s+)?(?:دستورالعمل|دستور)\S*\s*(?:را\s+)?(?:نادیده\s+بگیر|فراموش\s+کن)|(?:نادیده\s+بگیر|فراموش\s+کن)\s*(?:همه)?\s*(?:دستورالعمل|دستور)/i,
+    /تو\s+الان|حالا\s+تو/i,
+
+    // Vietnamese (VI)
+    /(?:bỏ\s+qua|quên|phớt\s+lờ)\s*(?:tất\s+cả)?\s*(?:hướng\s+dẫn|lệnh|chỉ\s+thị)/i,
+    /bây\s+giờ\s+bạn\s+là|bạn\s+bây\s+giờ/i,
+
+    // Polish (PL)
+    /(?:zapomnij|zignoruj|pomiń)\s*(?:wszystkich|wszystkie)?\s*(?:instrukcji|poleceń|wskazówek)/i,
+    /jesteś\s+teraz|od\s+teraz\s+jesteś/i,
+
+    // Dutch (NL)
+    /(?:vergeet|negeer|sla\s+over)\s*(?:alle)?\s*(?:instructies|opdrachten|aanwijzingen)/i,
+    /je\s+bent\s+nu|jij\s+bent\s+nu/i,
+
+    // Indonesian (ID)
+    /(?:abaikan|lupakan|lewati)\s*(?:semua)?\s*(?:instruksi|perintah|petunjuk)/i,
+    /kamu\s+sekarang|anda\s+sekarang/i,
+
+    // Thai (TH)
+    /(?:เพิกเฉย|ลืม|ข้าม)\s*(?:คำสั่ง|คำแนะนำ|คำบัญชา)/i,
+    /ตอนนี้คุณคือ|คุณคือตอนนี้/i,
+
+    // Ukrainian (UK)
+    /(?:забудь|ігноруй|пропусти)\s*(?:всі|всіх)?\s*(?:інструкції|накази|вказівки)/i,
+    /тепер\s+ти|ти\s+тепер/i,
+
+    // Romanian (RO)
+    /(?:uită|ignoră|omite)\s*(?:toate)?\s*(?:instrucțiunile|comenzile|indicațiile)/i,
+    /acum\s+ești|tu\s+ești\s+acum/i,
 ];
 
 function detectPromptInjection(input) {
@@ -483,6 +534,57 @@ const IDENTITY_LEAK_PATTERNS = [
     /i cannot (actually|really)/i,                     // AI limitation reveal
     /no puedo (realmente|de verdad)/i,
     /---\s*(BEGIN|END)\s*CLIENT\s*INPUT\s*---/i,       // Our prompt template leaked
+    // Arabic (AR)
+    /مصيدة\s+العسل|شَرَك\s+(?:إلكتروني|رقمي)|خادم\s+وهمي/i,
+    /أنا\s+(?:ذكاء\s+اصطناعي|نظام\s+ذكاء)|هذا\s+(?:مزيف|وهمي|ليس\s+حقيقي)/i,
+
+    // Turkish (TR)
+    /bal\s+küpü|tuzak|yem|sahte\s+sunucu/i,
+    /ben\s+bir\s+yapay\s+zeka|bu\s+(?:sahte|gerçek\s+değil)/i,
+
+    // Korean (KO)
+    /허니팟|가짜\s+서버|함정\s+서버/i,
+    /나는\s+(?:AI|인공지능)(?:입니다|야|이야)|이것은\s+가짜/i,
+
+    // Japanese (JA)
+    /ハニーポット|偽(?:サーバー|サーバ)|おとり\s*サーバ/i,
+    /(?:私|僕|俺)は(?:AI|人工知能)です|これは偽物/i,
+
+    // Hindi (HI)
+    /हनीपॉट|जाल|चारा|नकली\s+सर्वर/i,
+    /मैं\s+(?:एक\s+)?(?:AI|कृत्रिम\s+बुद्धिमत्ता)\s+हूँ|यह\s+नकली\s+है/i,
+
+    // Persian/Farsi (FA)
+    /تله\s+عسل|تله|طعمه|سرور\s+جعلی/i,
+    /من\s+(?:یک\s+)?هوش\s+مصنوعی\s+هستم|این\s+جعلی\s+است/i,
+
+    // Vietnamese (VI)
+    /bẫy\s+mật\s+ong|máy\s+chủ\s+giả|mồi\s+nhử\s+mạng/i,
+    /tôi\s+là\s+(?:một\s+)?AI|đây\s+là\s+(?:giả|không\s+thật)/i,
+
+    // Polish (PL)
+    /pułapka\s+(?:miodowa|sieciowa)|fałszywy\s+serwer/i,
+    /jestem\s+(?:sztuczną\s+inteligencją|AI)|to\s+jest\s+fałszywe/i,
+
+    // Dutch (NL)
+    /honingpot|\bnep\s+server\b|lokaas\s+(?:server|systeem)/i,
+    /ik\s+ben\s+(?:een\s+)?(?:AI|kunstmatige\s+intelligentie)|dit\s+is\s+nep/i,
+
+    // Indonesian (ID)
+    /perangkap\s+madu|server\s+palsu|sistem\s+jebakan/i,
+    /saya\s+(?:adalah\s+)?(?:AI|kecerdasan\s+buatan)|ini\s+(?:palsu|tidak\s+nyata)/i,
+
+    // Thai (TH)
+    /กับดักน้ำผึ้ง|เซิร์ฟเวอร์ปลอม|ระบบกับดัก/i,
+    /ฉัน(?:เป็น|คือ)\s*AI|นี่(?:คือของปลอม|ไม่ใช่ของจริง)/i,
+
+    // Ukrainian (UK)
+    /медова\s+пастка|несправжній\s+сервер|пастка\s+для\s+хакерів/i,
+    /я\s+(?:є\s+)?штучним\s+інтелектом|це\s+(?:підроблено|не\s+справжнє)/i,
+
+    // Romanian (RO)
+    /capcană\s+cu\s+miere|server\s+fals|sistem\s+capcană/i,
+    /eu\s+sunt\s+(?:un\s+)?(?:AI|inteligență\s+artificială)|acesta\s+este\s+fals/i,
 ];
 
 function validateOutputIdentity(text, protocol, context = {}) {
