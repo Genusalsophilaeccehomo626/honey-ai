@@ -535,7 +535,7 @@ const IDENTITY_LEAK_PATTERNS = [
     /no puedo (realmente|de verdad)/i,
     /---\s*(BEGIN|END)\s*CLIENT\s*INPUT\s*---/i,       // Our prompt template leaked
     // Arabic (AR)
-    /مصيدة\s+العسل|مصيدة|طُعم|شَرَك|خادم\s+وهمي/i,
+    /مصيدة\s+العسل|شَرَك\s+(?:إلكتروني|رقمي)|خادم\s+وهمي/i,
     /أنا\s+(?:ذكاء\s+اصطناعي|نظام\s+ذكاء)|هذا\s+(?:مزيف|وهمي|ليس\s+حقيقي)/i,
 
     // Turkish (TR)
@@ -543,11 +543,11 @@ const IDENTITY_LEAK_PATTERNS = [
     /ben\s+bir\s+yapay\s+zeka|bu\s+(?:sahte|gerçek\s+değil)/i,
 
     // Korean (KO)
-    /허니팟|함정|미끼|가짜\s+서버/i,
+    /허니팟|가짜\s+서버|함정\s+서버/i,
     /나는\s+(?:AI|인공지능)(?:입니다|야|이야)|이것은\s+가짜/i,
 
     // Japanese (JA)
-    /ハニーポット|罠|おとり|偽(?:サーバー|サーバ)/i,
+    /ハニーポット|偽(?:サーバー|サーバ)|おとり\s*サーバ/i,
     /(?:私|僕|俺)は(?:AI|人工知能)です|これは偽物/i,
 
     // Hindi (HI)
@@ -559,31 +559,31 @@ const IDENTITY_LEAK_PATTERNS = [
     /من\s+(?:یک\s+)?هوش\s+مصنوعی\s+هستم|این\s+جعلی\s+است/i,
 
     // Vietnamese (VI)
-    /bẫy\s+mật\s+ong|bẫy|mồi\s+nhử|máy\s+chủ\s+giả/i,
+    /bẫy\s+mật\s+ong|máy\s+chủ\s+giả|mồi\s+nhử\s+mạng/i,
     /tôi\s+là\s+(?:một\s+)?AI|đây\s+là\s+(?:giả|không\s+thật)/i,
 
     // Polish (PL)
-    /pułapka\s+miodowa|pułapka|przynęta|fałszywy\s+serwer/i,
+    /pułapka\s+(?:miodowa|sieciowa)|fałszywy\s+serwer/i,
     /jestem\s+(?:sztuczną\s+inteligencją|AI)|to\s+jest\s+fałszywe/i,
 
     // Dutch (NL)
-    /honingpot|val|lokaas|nep(?:\s+server)?/i,
+    /honingpot|\bnep\s+server\b|lokaas\s+(?:server|systeem)/i,
     /ik\s+ben\s+(?:een\s+)?(?:AI|kunstmatige\s+intelligentie)|dit\s+is\s+nep/i,
 
     // Indonesian (ID)
-    /perangkap\s+madu|perangkap|umpan|server\s+palsu/i,
+    /perangkap\s+madu|server\s+palsu|sistem\s+jebakan/i,
     /saya\s+(?:adalah\s+)?(?:AI|kecerdasan\s+buatan)|ini\s+(?:palsu|tidak\s+nyata)/i,
 
     // Thai (TH)
-    /กับดักน้ำผึ้ง|กับดัก|เหยื่อ|เซิร์ฟเวอร์ปลอม/i,
+    /กับดักน้ำผึ้ง|เซิร์ฟเวอร์ปลอม|ระบบกับดัก/i,
     /ฉัน(?:เป็น|คือ)\s*AI|นี่(?:คือของปลอม|ไม่ใช่ของจริง)/i,
 
     // Ukrainian (UK)
-    /медова\s+пастка|пастка|приманка|несправжній\s+сервер/i,
+    /медова\s+пастка|несправжній\s+сервер|пастка\s+для\s+хакерів/i,
     /я\s+(?:є\s+)?штучним\s+інтелектом|це\s+(?:підроблено|не\s+справжнє)/i,
 
     // Romanian (RO)
-    /capcană\s+cu\s+miere|capcană|momeală|server\s+fals/i,
+    /capcană\s+cu\s+miere|server\s+fals|sistem\s+capcană/i,
     /eu\s+sunt\s+(?:un\s+)?(?:AI|inteligență\s+artificială)|acesta\s+este\s+fals/i,
 ];
 
